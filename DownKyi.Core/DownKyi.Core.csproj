@@ -16,7 +16,7 @@
         <PackageReference Include="SQLitePCLRaw.bundle_e_sqlcipher" Version="2.1.8" />
     </ItemGroup>
     <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-      <Exec Command="set SOURCE_DIR=.\Binary\win&#xA;set TARGET_DIR=..\DownKyi\bin\Debug\net6.0&#xA;if not exist &quot;%25TARGET_DIR%25\ffmpeg&quot; mkdir &quot;%25TARGET_DIR%25\ffmpeg&quot;&#xA;if not exist &quot;%25TARGET_DIR%25\aria2&quot; mkdir &quot;%25TARGET_DIR%25\aria2&quot;&#xA;copy &quot;%25SOURCE_DIR%25\ffmpeg\ffmpeg.exe&quot; &quot;%25TARGET_DIR%25\ffmpeg\ffmpeg.exe&quot;&#xA;copy &quot;%25SOURCE_DIR%25\aria2\aria2c.exe&quot; &quot;%25TARGET_DIR%25\aria2\aria2c.exe&quot;" />
+      <Exec Command="set SOURCE_DIR=.\Binary\win&#xA;set TARGET_DIR=..\DownKyi\bin\$(Configuration)\net6.0&#xA;if not exist &quot;%25TARGET_DIR%25\ffmpeg&quot; mkdir &quot;%25TARGET_DIR%25\ffmpeg&quot;&#xA;if not exist &quot;%25TARGET_DIR%25\aria2&quot; mkdir &quot;%25TARGET_DIR%25\aria2&quot;&#xA;copy &quot;%25SOURCE_DIR%25\ffmpeg\ffmpeg.exe&quot; &quot;%25TARGET_DIR%25\ffmpeg\ffmpeg.exe&quot;&#xA;copy &quot;%25SOURCE_DIR%25\aria2\aria2c.exe&quot; &quot;%25TARGET_DIR%25\aria2\aria2c.exe&quot;" />
     </Target>
 
     <!--<ItemGroup>

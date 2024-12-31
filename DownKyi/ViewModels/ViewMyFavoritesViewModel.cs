@@ -33,7 +33,7 @@ public class ViewMyFavoritesViewModel : ViewModelBase
     private long mid = -1;
 
     // 每页视频数量，暂时在此写死，以后在设置中增加选项
-    private readonly int VideoNumberInPage = 20;
+    private readonly int VideoNumberInPage = 40;
 
     #region 页面属性申明
 
@@ -173,6 +173,12 @@ public class ViewMyFavoritesViewModel : ViewModelBase
         set => SetProperty(ref isSelectAll, value);
     }
 
+    private int selectedCount;
+    public int SelectedCount
+    {
+        get => Medias.Where(p => p.IsSelected).Count();
+        set => SetProperty(ref selectedCount, value);
+    }
     #endregion
 
     public ViewMyFavoritesViewModel(IEventAggregator eventAggregator, IDialogService dialogService) : base(
@@ -269,7 +275,7 @@ public class ViewMyFavoritesViewModel : ViewModelBase
     /// <param name="parameter"></param>
     private void ExecuteLeftTabHeadersCommand(object parameter)
     {
-        if (!(parameter is TabHeader tabHeader))
+        if (parameter is not TabHeader tabHeader)
         {
             return;
         }
@@ -379,6 +385,19 @@ public class ViewMyFavoritesViewModel : ViewModelBase
         AddToDownload(false);
     }
 
+    // 加载收藏夹内所有视频事件
+    private DelegateCommand loadAllVideoCommand;
+    public DelegateCommand LoadAllVideoCommand => loadAllVideoCommand ??= new DelegateCommand(ExecuteLoadAllVideoCommand);
+    /// <summary>
+    /// 加载收藏夹内所有视频事件定义
+    /// </summary>
+    private void ExecuteLoadAllVideoCommand()
+    {
+        for (int i = 1; i <= Pager.Count; i++)
+        {
+            UpdateFavoritesMediaList(i, true);
+        }
+    }
     #endregion
 
     /// <summary>
@@ -457,9 +476,12 @@ public class ViewMyFavoritesViewModel : ViewModelBase
         return true;
     }
 
-    private async void UpdateFavoritesMediaList(int current)
+    private async void UpdateFavoritesMediaList(int current, bool isLoadAll = false)
     {
-        Medias.Clear();
+        if (!isLoadAll)
+        {
+            Medias.Clear();
+        }
         IsSelectAll = false;
 
         MediaLoadingVisibility = true;
@@ -491,6 +513,17 @@ public class ViewMyFavoritesViewModel : ViewModelBase
 
             var service = new FavoritesService();
             service.GetFavoritesMediaList(medias, Medias, EventAggregator, cancellationToken);
+
+            foreach (FavoritesMedia media in Medias)
+            {
+                media.PropertyChanged += (s, e) =>
+                {
+                    if (e.PropertyName == nameof(FavoritesMedia.IsSelected))
+                    {
+                        RaisePropertyChanged(nameof(SelectedCount));
+                    }
+                };
+            }
         }), (tokenSource2 = new CancellationTokenSource()).Token);
 
         IsEnabled = true;

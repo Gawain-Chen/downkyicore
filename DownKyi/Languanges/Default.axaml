@@ -71,6 +71,10 @@
     <system:String x:Key="FavoritesUpName">UP主：</system:String>
     <system:String x:Key="FavoritesCreateTime">投稿：</system:String>
     <system:String x:Key="FavoritesFavTime">收藏于：</system:String>
+    <system:String x:Key="LoadAllVideo">加载全部视频</system:String>
+    <system:String x:Key="LoadedVideo1">已加载</system:String>
+    <system:String x:Key="SelectedVideo1">已选择</system:String>
+    <system:String x:Key="SelectedVideo2">个视频</system:String>
     
     <!--  MyBangumiFollow  -->
     <system:String x:Key="MyBangumiFollow">我的订阅</system:String>
