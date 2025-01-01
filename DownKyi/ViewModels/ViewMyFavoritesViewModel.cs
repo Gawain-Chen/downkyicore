@@ -176,8 +176,23 @@ public class ViewMyFavoritesViewModel : ViewModelBase
     private int selectedCount;
     public int SelectedCount
     {
-        get => Medias.Where(p => p.IsSelected).Count();
+        get => selectedCount;
         set => SetProperty(ref selectedCount, value);
+    }
+    private void UpdateSelectedCount()
+    {
+        try
+        {
+            int count = Medias.Where(p => p.IsSelected).Count();
+            if (count != selectedCount)
+            {
+                SelectedCount = count;
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"额eMedias:[{e.Message}]");
+        }
     }
     #endregion
 
@@ -326,6 +341,7 @@ public class ViewMyFavoritesViewModel : ViewModelBase
                 item.IsSelected = false;
             }
         }
+        UpdateSelectedCount();
     }
 
     // 列表选择事件
@@ -353,6 +369,7 @@ public class ViewMyFavoritesViewModel : ViewModelBase
         {
             IsSelectAll = false;
         }
+        UpdateSelectedCount();
     }
 
     // 添加选中项到下载列表事件
@@ -395,8 +412,11 @@ public class ViewMyFavoritesViewModel : ViewModelBase
     {
         for (int i = 1; i <= Pager.Count; i++)
         {
-            UpdateFavoritesMediaList(i, true);
+            UpdateFavoritesMediaList(i, i > 1);
         }
+
+        UpdateSelectedCount();
+        Pager = new CustomPagerViewModel(1, 1);
     }
     #endregion
 
@@ -454,13 +474,13 @@ public class ViewMyFavoritesViewModel : ViewModelBase
         }
         else
         {
-            EventAggregator.GetEvent<MessageEvent>()
-                .Publish($"{DictionaryResource.GetString("TipAddDownloadingFinished1")}{i}{DictionaryResource.GetString("TipAddDownloadingFinished2")}");
+            EventAggregator.GetEvent<MessageEvent>().Publish($"{DictionaryResource.GetString("TipAddDownloadingFinished1")}{i}{DictionaryResource.GetString("TipAddDownloadingFinished2")}");
         }
     }
 
     private void OnCountChanged_Pager(int count)
     {
+        UpdateSelectedCount();
     }
 
     private bool OnCurrentChanged_Pager(int old, int current)
@@ -514,18 +534,10 @@ public class ViewMyFavoritesViewModel : ViewModelBase
             var service = new FavoritesService();
             service.GetFavoritesMediaList(medias, Medias, EventAggregator, cancellationToken);
 
-            foreach (FavoritesMedia media in Medias)
-            {
-                media.PropertyChanged += (s, e) =>
-                {
-                    if (e.PropertyName == nameof(FavoritesMedia.IsSelected))
-                    {
-                        RaisePropertyChanged(nameof(SelectedCount));
-                    }
-                };
-            }
+
         }), (tokenSource2 = new CancellationTokenSource()).Token);
 
+        UpdateSelectedCount();
         IsEnabled = true;
     }
 
@@ -596,8 +608,7 @@ public class ViewMyFavoritesViewModel : ViewModelBase
         SelectTabId = 0;
 
         // 页面选择
-        Pager = new CustomPagerViewModel(1,
-            (int)Math.Ceiling(double.Parse(TabHeaders[0].SubTitle) / VideoNumberInPage));
+        Pager = new CustomPagerViewModel(1, (int)Math.Ceiling(double.Parse(TabHeaders[SelectTabId].SubTitle) / VideoNumberInPage));
         Pager.CurrentChanged += OnCurrentChanged_Pager;
         Pager.CountChanged += OnCountChanged_Pager;
         Pager.Current = 1;

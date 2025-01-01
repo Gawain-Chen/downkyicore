@@ -279,7 +279,7 @@ public class ViewVideoDetailViewModel : ViewModelBase
     /// <summary>
     /// 复制封面事件
     /// </summary>
-    private async void ExecuteCopyCoverCommand()
+    private void ExecuteCopyCoverCommand()
     {
         // 复制封面图片到剪贴板
         // Clipboard.SetImage(VideoInfoView.Cover);

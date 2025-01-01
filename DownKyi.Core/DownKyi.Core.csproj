@@ -6,6 +6,10 @@
         <Nullable>enable</Nullable>
         <!--<RuntimeIdentifier>$([System.Runtime.InteropServices.RuntimeInformation]::RuntimeIdentifier)</RuntimeIdentifier>-->
     </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+      <Optimize>True</Optimize>
+    </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Avalonia" Version="11.1.3" />
         <PackageReference Include="FFMpegCore" Version="5.1.0" />

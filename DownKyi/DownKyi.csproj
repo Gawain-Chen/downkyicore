@@ -9,6 +9,9 @@
         <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
         <ApplicationIcon>Resources\favicon.ico</ApplicationIcon>
     </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+      <Optimize>True</Optimize>
+    </PropertyGroup>
 
     <ItemGroup>
         <AvaloniaResource Include="Resources\**" />
