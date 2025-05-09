@@ -33,7 +33,7 @@ public class ViewMyFavoritesViewModel : ViewModelBase
     private long mid = -1;
 
     // 每页视频数量，暂时在此写死，以后在设置中增加选项
-    private readonly int VideoNumberInPage = 20;
+    private readonly int VideoNumberInPage = 40;
 
     #region 页面属性申明
 
@@ -173,6 +173,20 @@ public class ViewMyFavoritesViewModel : ViewModelBase
         set => SetProperty(ref isSelectAll, value);
     }
 
+    private int selectedCount;
+    public int SelectedCount
+    {
+        get => selectedCount;
+        set => SetProperty(ref selectedCount, value);
+    }
+    private void UpdateSelectedCount()
+    {
+        int count = Medias.Where(p => p.IsSelected).Count();
+        if (count != selectedCount)
+        {
+            SelectedCount = count;
+        }
+    }
     #endregion
 
     public ViewMyFavoritesViewModel(IEventAggregator eventAggregator, IDialogService dialogService) : base(
@@ -269,7 +283,7 @@ public class ViewMyFavoritesViewModel : ViewModelBase
     /// <param name="parameter"></param>
     private void ExecuteLeftTabHeadersCommand(object parameter)
     {
-        if (!(parameter is TabHeader tabHeader))
+        if (parameter is not TabHeader tabHeader)
         {
             return;
         }
@@ -320,6 +334,7 @@ public class ViewMyFavoritesViewModel : ViewModelBase
                 item.IsSelected = false;
             }
         }
+        UpdateSelectedCount();
     }
 
     // 列表选择事件
@@ -347,6 +362,7 @@ public class ViewMyFavoritesViewModel : ViewModelBase
         {
             IsSelectAll = false;
         }
+        UpdateSelectedCount();
     }
 
     // 添加选中项到下载列表事件
@@ -379,6 +395,22 @@ public class ViewMyFavoritesViewModel : ViewModelBase
         AddToDownload(false);
     }
 
+    // 加载收藏夹内所有视频事件
+    private DelegateCommand loadAllVideoCommand;
+    public DelegateCommand LoadAllVideoCommand => loadAllVideoCommand ??= new DelegateCommand(ExecuteLoadAllVideoCommand);
+    /// <summary>
+    /// 加载收藏夹内所有视频事件定义
+    /// </summary>
+    private void ExecuteLoadAllVideoCommand()
+    {
+        for (int i = 1; i <= Pager.Count; i++)
+        {
+            UpdateFavoritesMediaList(i, i > 1);
+        }
+
+        UpdateSelectedCount();
+        Pager = new CustomPagerViewModel(1, 1);
+    }
     #endregion
 
     /// <summary>
@@ -435,13 +467,13 @@ public class ViewMyFavoritesViewModel : ViewModelBase
         }
         else
         {
-            EventAggregator.GetEvent<MessageEvent>()
-                .Publish($"{DictionaryResource.GetString("TipAddDownloadingFinished1")}{i}{DictionaryResource.GetString("TipAddDownloadingFinished2")}");
+            EventAggregator.GetEvent<MessageEvent>().Publish($"{DictionaryResource.GetString("TipAddDownloadingFinished1")}{i}{DictionaryResource.GetString("TipAddDownloadingFinished2")}");
         }
     }
 
     private void OnCountChanged_Pager(int count)
     {
+        UpdateSelectedCount();
     }
 
     private bool OnCurrentChanged_Pager(int old, int current)
@@ -457,9 +489,12 @@ public class ViewMyFavoritesViewModel : ViewModelBase
         return true;
     }
 
-    private async void UpdateFavoritesMediaList(int current)
+    private async void UpdateFavoritesMediaList(int current, bool isLoadAll = false)
     {
-        Medias.Clear();
+        if (!isLoadAll)
+        {
+            Medias.Clear();
+        }
         IsSelectAll = false;
 
         MediaLoadingVisibility = true;
@@ -491,8 +526,11 @@ public class ViewMyFavoritesViewModel : ViewModelBase
 
             var service = new FavoritesService();
             service.GetFavoritesMediaList(medias, Medias, EventAggregator, cancellationToken);
+
+
         }), (tokenSource2 = new CancellationTokenSource()).Token);
 
+        UpdateSelectedCount();
         IsEnabled = true;
     }
 
@@ -563,8 +601,7 @@ public class ViewMyFavoritesViewModel : ViewModelBase
         SelectTabId = 0;
 
         // 页面选择
-        Pager = new CustomPagerViewModel(1,
-            (int)Math.Ceiling(double.Parse(TabHeaders[0].SubTitle) / VideoNumberInPage));
+        Pager = new CustomPagerViewModel(1, (int)Math.Ceiling(double.Parse(TabHeaders[SelectTabId].SubTitle) / VideoNumberInPage));
         Pager.CurrentChanged += OnCurrentChanged_Pager;
         Pager.CountChanged += OnCountChanged_Pager;
         Pager.Current = 1;

@@ -41,7 +41,7 @@ namespace DownKyi.ViewModels.DownloadManager
         public ViewDownloadFinishedViewModel(IEventAggregator eventAggregator, IDialogService dialogService) : base(eventAggregator, dialogService)
         {
             // 初始化DownloadedList
-            DownloadedList = App.DownloadedList;
+            DownloadedList = App.DownloadedList ?? new();
             DownloadedList.CollectionChanged += (sender, e) =>
             {
                 if (e.Action == NotifyCollectionChangedAction.Add)
@@ -127,7 +127,7 @@ namespace DownKyi.ViewModels.DownloadManager
                 {
                     App.PropertyChangeAsync(() =>
                     {
-                        App.DownloadedList.Remove(item);
+                        App.DownloadedList?.Remove(item);
                     });
                 }
             });
@@ -135,21 +135,17 @@ namespace DownKyi.ViewModels.DownloadManager
 
         #endregion
 
-        private async void SetDialogService()
+        private void SetDialogService()
         {
             try
             {
-                await Task.Run(() =>
+                foreach (var item in DownloadedList)
                 {
-                    var list = DownloadedList.ToList();
-                    foreach (var item in list)
+                    if (item != null && item.DialogService == null)
                     {
-                        if (item != null && item.DialogService == null)
-                        {
-                            item.DialogService = DialogService;
-                        }
+                        item.DialogService = DialogService;
                     }
-                });
+                }
             }
             catch (Exception e)
             {

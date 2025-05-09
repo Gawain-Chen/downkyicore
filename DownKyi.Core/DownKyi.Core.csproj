@@ -4,7 +4,17 @@
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <RuntimeIdentifier>$([System.Runtime.InteropServices.RuntimeInformation]::RuntimeIdentifier)</RuntimeIdentifier>
+        <PlatformTarget>x64</PlatformTarget>
+        <!--<RuntimeIdentifier>$([System.Runtime.InteropServices.RuntimeInformation]::RuntimeIdentifier)</RuntimeIdentifier>-->
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+      <Optimize>True</Optimize>
+      <DebugType>full</DebugType>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+      <DebugType>full</DebugType>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Avalonia" Version="11.1.3" />
@@ -15,14 +25,17 @@
         <PackageReference Include="QRCoder" Version="1.6.0" />
         <PackageReference Include="SQLitePCLRaw.bundle_e_sqlcipher" Version="2.1.8" />
     </ItemGroup>
+    <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+      <Exec Command="set SOURCE_DIR=.\Binary\win&#xA;set TARGET_DIR=..\DownKyi\bin\$(Configuration)\net6.0&#xA;if not exist &quot;%25TARGET_DIR%25\ffmpeg&quot; mkdir &quot;%25TARGET_DIR%25\ffmpeg&quot;&#xA;if not exist &quot;%25TARGET_DIR%25\aria2&quot; mkdir &quot;%25TARGET_DIR%25\aria2&quot;&#xA;copy &quot;%25SOURCE_DIR%25\ffmpeg\ffmpeg.exe&quot; &quot;%25TARGET_DIR%25\ffmpeg\ffmpeg.exe&quot;&#xA;copy &quot;%25SOURCE_DIR%25\aria2\aria2c.exe&quot; &quot;%25TARGET_DIR%25\aria2\aria2c.exe&quot;" />
+    </Target>
 
-    <ItemGroup>
+    <!--<ItemGroup>
         <None Update="Binary/$(RuntimeIdentifier)/aria2/*" Link="aria2/%(Filename)%(Extension)" Visible="false">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="Binary/$(RuntimeIdentifier)/ffmpeg/*" Link="ffmpeg/%(Filename)%(Extension)" Visible="false">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-    </ItemGroup>
+    </ItemGroup>-->
 
 </Project>
