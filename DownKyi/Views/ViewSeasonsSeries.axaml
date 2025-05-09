@@ -2,10 +2,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="DownKyi.Views.ViewSeasonsSeries"
              xmlns:custom="clr-namespace:DownKyi.CustomControl"
-             xmlns:i="using:Avalonia.Xaml.Interactivity"
-             xmlns:ia="clr-namespace:Avalonia.Xaml.Interactions.Core;assembly=Avalonia.Xaml.Interactions"
              xmlns:vm="clr-namespace:DownKyi.ViewModels"
              xmlns:vmp="clr-namespace:DownKyi.ViewModels.PageViewModels"
+             xmlns:asyncImageLoader="clr-namespace:DownKyi.CustomControl.AsyncImageLoader"
              x:DataType="vm:ViewSeasonsSeriesViewModel">
     <UserControl.Resources>
         <ControlTheme x:Key="MediaListStyle" TargetType="ListBoxItem" x:DataType="vmp:ChannelMedia">
@@ -18,20 +17,18 @@
                             Margin="15,15,10,5"
                             Cursor="Hand"
                             Orientation="Vertical">
-                            <i:Interaction.Behaviors>
-                                <ia:DataTriggerBehavior ComparisonCondition="Equal" Binding="{Binding IsSelected}"
-                                                        Value="True">
-                                    <ia:ChangePropertyAction TargetObject="nameChecked" PropertyName="IsVisible"
-                                                             Value="True">
-                                    </ia:ChangePropertyAction>
-                                </ia:DataTriggerBehavior>
-                                <ia:DataTriggerBehavior ComparisonCondition="Equal" Binding="{Binding IsSelected}"
-                                                        Value="False">
-                                    <ia:ChangePropertyAction TargetObject="nameChecked" PropertyName="IsVisible"
-                                                             Value="False">
-                                    </ia:ChangePropertyAction>
-                                </ia:DataTriggerBehavior>
-                            </i:Interaction.Behaviors>
+                            <Interaction.Behaviors>
+                                <DataTriggerBehavior ComparisonCondition="Equal" Binding="{Binding IsSelected}"
+                                                     Value="True">
+                                    <ChangePropertyAction TargetObject="nameChecked" PropertyName="IsVisible"
+                                                          Value="True" />
+                                </DataTriggerBehavior>
+                                <DataTriggerBehavior ComparisonCondition="Equal" Binding="{Binding IsSelected}"
+                                                     Value="False">
+                                    <ChangePropertyAction TargetObject="nameChecked" PropertyName="IsVisible"
+                                                          Value="False" />
+                                </DataTriggerBehavior>
+                            </Interaction.Behaviors>
                             <Border
                                 Name="nameCover"
                                 Width="190"
@@ -40,7 +37,9 @@
                                 CornerRadius="5">
                                 <Border.Background>
                                     <!--  长宽比：1.6  -->
-                                    <ImageBrush Source="{Binding Cover}" />
+                                    <ImageBrush asyncImageLoader:ImageBrushLoader.Source="{Binding Cover}"
+                                                asyncImageLoader:ImageBrushLoader.Width="190"
+                                                asyncImageLoader:ImageBrushLoader.Height="119" />
                                 </Border.Background>
                                 <Grid Width="190" Height="119">
                                     <Image
@@ -75,12 +74,11 @@
                                 TextTrimming="CharacterEllipsis"
                                 TextWrapping="Wrap"
                                 ToolTip.Tip="{Binding Title}">
-                                <i:Interaction.Behaviors>
-                                    <ia:EventTriggerBehavior EventName="PointerReleased">
-                                        <ia:InvokeCommandAction Command="{Binding TitleCommand}"
-                                                                CommandParameter="{ReflectionBinding DataContext.PageName, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}}" />
-                                    </ia:EventTriggerBehavior>
-                                </i:Interaction.Behaviors>
+                                <Interaction.Behaviors>
+                                    <ExecuteCommandOnPointerReleasedBehavior
+                                        Command="{Binding TitleCommand}"
+                                        CommandParameter="{ReflectionBinding DataContext.PageName, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}}" />
+                                </Interaction.Behaviors>
                             </TextBlock>
                             <Grid Margin="0,3,0,0" ColumnDefinitions="*,*">
                                 <StackPanel Grid.Column="0" Orientation="Horizontal">
@@ -141,14 +139,14 @@
                         FontSize="16"
                         Foreground="{DynamicResource BrushTextDark}"
                         Text=" - ">
-                        <i:Interaction.Behaviors>
-                            <ia:DataTriggerBehavior Binding="{Binding Title}" Value="{x:Null}">
-                                <ia:ChangePropertyAction PropertyName="IsVisible" Value="False"></ia:ChangePropertyAction>
-                            </ia:DataTriggerBehavior>
-                            <ia:DataTriggerBehavior Binding="{Binding Title}" Value="">
-                                <ia:ChangePropertyAction PropertyName="IsVisible" Value="False"></ia:ChangePropertyAction>
-                            </ia:DataTriggerBehavior>
-                        </i:Interaction.Behaviors>
+                        <Interaction.Behaviors>
+                            <DataTriggerBehavior Binding="{Binding Title}" Value="{x:Null}">
+                                <ChangePropertyAction PropertyName="IsVisible" Value="False" />
+                            </DataTriggerBehavior>
+                            <DataTriggerBehavior Binding="{Binding Title}" Value="">
+                                <ChangePropertyAction PropertyName="IsVisible" Value="False" />
+                            </DataTriggerBehavior>
+                        </Interaction.Behaviors>
                     </TextBlock>
                     <TextBlock
                         VerticalAlignment="Center"
@@ -188,12 +186,12 @@
                 ItemContainerTheme="{StaticResource MediaListStyle}"
                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 SelectionMode="Multiple">
-                <i:Interaction.Behaviors>
-                    <ia:EventTriggerBehavior EventName="SelectionChanged">
-                        <ia:InvokeCommandAction Command="{Binding MediasCommand}"
-                                                CommandParameter="{Binding ElementName=NameMedias, Path=SelectedItems}" />
-                    </ia:EventTriggerBehavior>
-                </i:Interaction.Behaviors>
+                <Interaction.Behaviors>
+                    <EventTriggerBehavior EventName="SelectionChanged">
+                        <InvokeCommandAction Command="{Binding MediasCommand}"
+                                             CommandParameter="{Binding ElementName=NameMedias, Path=SelectedItems}" />
+                    </EventTriggerBehavior>
+                </Interaction.Behaviors>
                 <ListBox.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel />

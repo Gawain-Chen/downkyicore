@@ -2,11 +2,9 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
-using Avalonia.Media.Imaging;
 using DownKyi.Core.BiliApi.Users;
 using DownKyi.Core.BiliApi.Users.Models;
 using DownKyi.Core.Settings;
-using DownKyi.Core.Settings.Models;
 using DownKyi.Core.Storage;
 using DownKyi.CustomControl;
 using DownKyi.ViewModels.PageViewModels;
@@ -101,9 +99,6 @@ public class ViewFollowerViewModel : ViewModelBase
         #endregion
     }
 
-    #region 命令申明
-
-    #endregion
 
     private void LoadContent(List<RelationFollowInfo> contents)
     {
@@ -112,9 +107,7 @@ public class ViewFollowerViewModel : ViewModelBase
         NoDataVisibility = false;
         foreach (var item in contents)
         {
-            var storageHeader = new StorageHeader();
-            var header = storageHeader.GetHeaderThumbnail(item.Mid, item.Name, item.Face, 64, 64);
-            PropertyChangeAsync(() => { Contents.Add(new FriendInfo(EventAggregator) { Mid = item.Mid, Header = header, Name = item.Name, Sign = item.Sign }); });
+            PropertyChangeAsync(() => { Contents.Add(new FriendInfo(EventAggregator) { Mid = item.Mid, Header = item.Face, Name = item.Name, Sign = item.Sign }); });
         }
     }
 
@@ -163,14 +156,7 @@ public class ViewFollowerViewModel : ViewModelBase
             else
             {
                 var page = (int)Math.Ceiling((double)data.Total / NumberInPage);
-                if (page > 5)
-                {
-                    Pager.Count = 5;
-                }
-                else
-                {
-                    Pager.Count = page;
-                }
+                Pager.Count = page > 5 ? 5 : page;
             }
 
             ContentVisibility = true;
@@ -231,17 +217,15 @@ public class ViewFollowerViewModel : ViewModelBase
         // true表示加载PageFriends后第一次进入此页面
         // false表示从headerTable的item点击进入的
         var isFirst = navigationContext.Parameters.GetValue<bool>("isFirst");
-        if (isFirst)
-        {
-            InitView();
+        if (!isFirst) return;
+        InitView();
 
-            //UpdateContent(1);
+        //UpdateContent(1);
 
-            // 页面选择
-            Pager = new CustomPagerViewModel(1, (int)Math.Ceiling((double)1 / NumberInPage));
-            Pager.CurrentChanged += OnCurrentChanged_Pager;
-            Pager.CountChanged += OnCountChanged_Pager;
-            Pager.Current = 1;
-        }
+        // 页面选择
+        Pager = new CustomPagerViewModel(1, (int)Math.Ceiling((double)1 / NumberInPage));
+        Pager.CurrentChanged += OnCurrentChanged_Pager;
+        Pager.CountChanged += OnCountChanged_Pager;
+        Pager.Current = 1;
     }
 }

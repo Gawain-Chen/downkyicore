@@ -1,11 +1,14 @@
 ﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              x:Class="DownKyi.Views.Settings.ViewNetwork"
              xmlns:vms="clr-namespace:DownKyi.ViewModels.Settings"
+             xmlns:settings="clr-namespace:DownKyi.Core.Settings;assembly=DownKyi.Core"
              x:DataType="vms:ViewNetworkViewModel"
-             xmlns:i="using:Avalonia.Xaml.Interactivity"
-             xmlns:ia="clr-namespace:Avalonia.Xaml.Interactions.Core;assembly=Avalonia.Xaml.Interactions"
-             xmlns:iac="clr-namespace:DownKyi.CustomAction">
+             mc:Ignorable="d"
+             d:DesignWidth="800"
+             d:DesignHeight="1200">
     <ScrollViewer>
         <StackPanel Margin="50,0" Orientation="Vertical">
             <StackPanel Margin="0,20,0,0" Orientation="Horizontal">
@@ -20,11 +23,11 @@
                 Margin="0,20,0,0"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Top"
-                Command="{Binding UseSSLCommand}"
+                Command="{Binding UseSslCommand}"
                 Content="{DynamicResource UseSSL}"
                 FontSize="12"
                 Foreground="{DynamicResource BrushTextDark}"
-                IsChecked="{Binding UseSSL, Mode=TwoWay}" />
+                IsChecked="{Binding UseSsl, Mode=TwoWay}" />
 
             <TextBlock
                 Margin="0,20,0,0"
@@ -32,17 +35,76 @@
                 Foreground="{DynamicResource BrushTextDark}"
                 Text="{DynamicResource UserAgent}" />
 
+            <HeaderedContentControl
+                Margin="0,20,0,0"
+                Padding="10,5"
+                HorizontalAlignment="Left"
+                FontSize="12"
+                Background="LightGray"
+                Foreground="{DynamicResource BrushTextDark}"
+                Header="{StaticResource NetworkProxySetting}">
+                <StackPanel Margin="10">
+                    <RadioButton
+                        IsChecked="{Binding NetworkProxy,Converter={x:Static ObjectConverters.Equal},ConverterParameter={x:Static settings:NetworkProxy.None}}"
+                        Command="{Binding NetworkProxyCommand}"
+                        CommandParameter="{x:Static settings:NetworkProxy.None}"
+                        Content="{StaticResource NetworkProxyNone}"
+                        GroupName="proxy"
+                        Margin="0,5,0,0" />
+                    <RadioButton
+                        IsChecked="{Binding NetworkProxy,Converter={x:Static ObjectConverters.Equal},ConverterParameter={x:Static settings:NetworkProxy.System}}"
+                        Command="{Binding NetworkProxyCommand}"
+                        CommandParameter="{x:Static settings:NetworkProxy.System}"
+                        Content="{StaticResource NetworkProxySystem}"
+                        GroupName="proxy"
+                        Margin="0,5,0,0" />
+                    <RadioButton
+                        IsChecked="{Binding NetworkProxy,Converter={x:Static ObjectConverters.Equal},ConverterParameter={x:Static settings:NetworkProxy.Custom}}"
+                        Command="{Binding NetworkProxyCommand}"
+                        CommandParameter="{x:Static settings:NetworkProxy.Custom}"
+                        Content="{StaticResource NetworkProxyCustom}"
+                        GroupName="proxy"
+                        Margin="0,5,0,0" />
+                    <StackPanel
+                        IsVisible="{Binding NetworkProxy,Converter={x:Static ObjectConverters.Equal},ConverterParameter={x:Static settings:NetworkProxy.Custom}}"
+                        Margin="0,5,0,0"
+                        Orientation="Horizontal"
+                        ToolTip.Tip="{DynamicResource PressEnterToApplySettingTip}">
+
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Foreground="{DynamicResource BrushTextDark}"
+                                Text="{DynamicResource HttpProxy}" />
+                            <TextBox
+                                Name="CustomNetworkProxy"
+                                Width="220"
+                                VerticalContentAlignment="Center"
+                                Text="{Binding CustomNetworkProxy}">
+                                <Interaction.Behaviors>
+                                    <ExecuteCommandOnKeyDownBehavior
+                                        Key="Enter"
+                                        Command="{Binding CustomNetworkProxyCommand}"
+                                        CommandParameter="{Binding ElementName=CustomNetworkProxy, Path=Text}" />
+                                </Interaction.Behaviors>
+                            </TextBox>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </HeaderedContentControl>
+
             <TextBox
                 Name="NameUserAgent"
                 Margin="0,10,0,0"
                 HorizontalAlignment="Stretch"
                 Text="{Binding UserAgent}">
-                <i:Interaction.Behaviors>
-                    <iac:KeyUpBehavior Key="Enter">
-                        <ia:InvokeCommandAction Command="{Binding UserAgentCommand}"
-                                                CommandParameter="{Binding ElementName=NameUserAgent,Path=Text}" />
-                    </iac:KeyUpBehavior>
-                </i:Interaction.Behaviors>
+                <Interaction.Behaviors>
+                    <ExecuteCommandOnKeyDownBehavior
+                        Key="Enter"
+                        Command="{Binding UserAgentCommand}"
+                        CommandParameter="{Binding ElementName=NameUserAgent, Path=Text}" />
+                </Interaction.Behaviors>
             </TextBox>
 
             <StackPanel Margin="0,20,0,0" Orientation="Vertical">
@@ -66,7 +128,7 @@
                         Content="{DynamicResource Aria2cDownloader}"
                         FontSize="12"
                         Foreground="{DynamicResource BrushTextDark}"
-                        IsChecked="{Binding Aria2c}" />
+                        IsChecked="{Binding Aria2C}" />
                     <RadioButton
                         Margin="20,0,0,0"
                         Command="{Binding SelectDownloaderCommand}"
@@ -74,7 +136,7 @@
                         Content="{DynamicResource CustomAria2cDownloader}"
                         FontSize="12"
                         Foreground="{DynamicResource BrushTextDark}"
-                        IsChecked="{Binding CustomAria2c}" />
+                        IsChecked="{Binding CustomAria2C}" />
                 </StackPanel>
             </StackPanel>
             <TextBlock
@@ -96,12 +158,12 @@
                         VerticalContentAlignment="Center"
                         ItemsSource="{Binding MaxCurrentDownloads}"
                         SelectedValue="{Binding SelectedMaxCurrentDownload,Mode=TwoWay}">
-                        <i:Interaction.Behaviors>
-                            <ia:EventTriggerBehavior EventName="SelectionChanged">
-                                <ia:InvokeCommandAction Command="{Binding MaxCurrentDownloadsCommand}"
-                                                        CommandParameter="{Binding ElementName=NameMaxCurrentDownloads, Path=SelectedValue}" />
-                            </ia:EventTriggerBehavior>
-                        </i:Interaction.Behaviors>
+                        <Interaction.Behaviors>
+                            <EventTriggerBehavior EventName="SelectionChanged">
+                                <InvokeCommandAction Command="{Binding MaxCurrentDownloadsCommand}"
+                                                     CommandParameter="{Binding ElementName=NameMaxCurrentDownloads, Path=SelectedValue}" />
+                            </EventTriggerBehavior>
+                        </Interaction.Behaviors>
                     </ComboBox>
                 </StackPanel>
 
@@ -118,12 +180,12 @@
                         VerticalContentAlignment="Center"
                         ItemsSource="{Binding Splits}"
                         SelectedValue="{Binding SelectedSplit}">
-                        <i:Interaction.Behaviors>
-                            <ia:EventTriggerBehavior EventName="SelectionChanged">
-                                <ia:InvokeCommandAction Command="{Binding SplitsCommand}"
-                                                        CommandParameter="{Binding ElementName=NameSplits, Path=SelectedValue}" />
-                            </ia:EventTriggerBehavior>
-                        </i:Interaction.Behaviors>
+                        <Interaction.Behaviors>
+                            <EventTriggerBehavior EventName="SelectionChanged">
+                                <InvokeCommandAction Command="{Binding SplitsCommand}"
+                                                     CommandParameter="{Binding ElementName=NameSplits, Path=SelectedValue}" />
+                            </EventTriggerBehavior>
+                        </Interaction.Behaviors>
                     </ComboBox>
                 </StackPanel>
 
@@ -137,47 +199,56 @@
                     FontSize="12"
                     Foreground="{DynamicResource BrushTextDark}"
                     IsChecked="{Binding IsHttpProxy, Mode=TwoWay}" />
-            </StackPanel>
 
-            <StackPanel x:Name="NameAria" IsVisible="{Binding Aria2c}">
-                <!--<StackPanel.Style>
-                    <Style TargetType="{x:Type StackPanel}">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Aria2c}" Value="True">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Aria2c}" Value="False">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </StackPanel.Style>-->
-
-                <!--<StackPanel
+                <StackPanel
+                    Name="NameHttpProxyPanel"
+                    IsVisible="{Binding IsHttpProxy}"
                     Margin="0,20,0,0"
                     Orientation="Horizontal"
                     ToolTip.Tip="{DynamicResource PressEnterToApplySettingTip}">
-                    <TextBlock
-                        Width="100"
-                        VerticalAlignment="Center"
-                        FontSize="12"
-                        Foreground="{DynamicResource BrushTextDark}"
-                        Text="{DynamicResource AriaServerHost}" />
-                    <TextBox
-                        Name="NameAriaLocalHost"
-                        Width="100"
-                        VerticalContentAlignment="Center"
-                        IsReadOnly="True"
-                        Text="{Binding AriaHost}">
-                        <i:Interaction.Behaviors>
-                            <iac:KeyUpBehavior Key="Enter">
-                                <ia:InvokeCommandAction Command="{Binding AriaHostCommand}"
-                                                        CommandParameter="{Binding ElementName=NameAriaLocalHost, Path=Text}" />
-                            </iac:KeyUpBehavior>
-                        </i:Interaction.Behaviors>
-                    </TextBox>
-                </StackPanel>-->
 
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Foreground="{DynamicResource BrushTextDark}"
+                            Text="{DynamicResource HttpProxy}" />
+                        <TextBox
+                            Name="NameHttpProxy"
+                            Width="200"
+                            VerticalContentAlignment="Center"
+                            Text="{Binding HttpProxy}">
+                            <Interaction.Behaviors>
+                                <ExecuteCommandOnKeyDownBehavior
+                                    Key="Enter"
+                                    Command="{Binding HttpProxyCommand}"
+                                    CommandParameter="{Binding ElementName=NameHttpProxy, Path=Text}" />
+                            </Interaction.Behaviors>
+                        </TextBox>
+                    </StackPanel>
+                    <StackPanel Margin="30,0,0,0" Orientation="Horizontal">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Foreground="{DynamicResource BrushTextDark}"
+                            Text="{DynamicResource HttpProxyPort}" />
+                        <TextBox
+                            Name="NameHttpProxyPort"
+                            Width="100"
+                            VerticalContentAlignment="Center"
+                            Text="{Binding HttpProxyPort}">
+                            <Interaction.Behaviors>
+                                <ExecuteCommandOnKeyDownBehavior
+                                    Key="Enter"
+                                    Command="{Binding HttpProxyPortCommand}"
+                                    CommandParameter="{Binding ElementName=NameHttpProxyPort, Path=Text}" />
+                            </Interaction.Behaviors>
+                        </TextBox>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel x:Name="NameAria" IsVisible="{Binding Aria2C}">
                 <StackPanel
                     Margin="0,20,0,0"
                     Orientation="Horizontal"
@@ -193,12 +264,12 @@
                         Width="100"
                         VerticalContentAlignment="Center"
                         Text="{Binding AriaListenPort}">
-                        <i:Interaction.Behaviors>
-                            <iac:KeyUpBehavior Key="Enter">
-                                <ia:InvokeCommandAction Command="{Binding AriaListenPortCommand}"
-                                                        CommandParameter="{Binding ElementName=NameAriaListenPort, Path=Text}" />
-                            </iac:KeyUpBehavior>
-                        </i:Interaction.Behaviors>
+                        <Interaction.Behaviors>
+                            <ExecuteCommandOnKeyDownBehavior
+                                Key="Enter"
+                                Command="{Binding AriaListenPortCommand}"
+                                CommandParameter="{Binding ElementName=NameAriaListenPort, Path=Text}" />
+                        </Interaction.Behaviors>
                     </TextBox>
                 </StackPanel>
 
@@ -215,12 +286,12 @@
                         VerticalContentAlignment="Center"
                         ItemsSource="{Binding AriaLogLevels}"
                         SelectedValue="{Binding SelectedAriaLogLevel}">
-                        <i:Interaction.Behaviors>
-                            <ia:EventTriggerBehavior EventName="SelectionChanged">
-                                <ia:InvokeCommandAction Command="{Binding AriaLogLevelsCommand}"
-                                                        CommandParameter="{Binding ElementName=NameAriaLogLevels, Path=SelectedValue}" />
-                            </ia:EventTriggerBehavior>
-                        </i:Interaction.Behaviors>
+                        <Interaction.Behaviors>
+                            <EventTriggerBehavior EventName="SelectionChanged">
+                                <InvokeCommandAction Command="{Binding AriaLogLevelsCommand}"
+                                                     CommandParameter="{Binding ElementName=NameAriaLogLevels, Path=SelectedValue}" />
+                            </EventTriggerBehavior>
+                        </Interaction.Behaviors>
                     </ComboBox>
                 </StackPanel>
 
@@ -237,12 +308,12 @@
                         VerticalContentAlignment="Center"
                         ItemsSource="{Binding AriaMaxConcurrentDownloads}"
                         SelectedValue="{Binding SelectedAriaMaxConcurrentDownload}">
-                        <i:Interaction.Behaviors>
-                            <ia:EventTriggerBehavior EventName="SelectionChanged">
-                                <ia:InvokeCommandAction Command="{Binding AriaMaxConcurrentDownloadsCommand}"
-                                                        CommandParameter="{Binding ElementName=NameAriaMaxConcurrentDownloads, Path=SelectedValue}" />
-                            </ia:EventTriggerBehavior>
-                        </i:Interaction.Behaviors>
+                        <Interaction.Behaviors>
+                            <EventTriggerBehavior EventName="SelectionChanged">
+                                <InvokeCommandAction Command="{Binding AriaMaxConcurrentDownloadsCommand}"
+                                                     CommandParameter="{Binding ElementName=NameAriaMaxConcurrentDownloads, Path=SelectedValue}" />
+                            </EventTriggerBehavior>
+                        </Interaction.Behaviors>
                     </ComboBox>
                 </StackPanel>
 
@@ -259,12 +330,12 @@
                         VerticalContentAlignment="Center"
                         ItemsSource="{Binding AriaSplits}"
                         SelectedValue="{Binding SelectedAriaSplit}">
-                        <i:Interaction.Behaviors>
-                            <ia:EventTriggerBehavior EventName="SelectionChanged">
-                                <ia:InvokeCommandAction Command="{Binding AriaSplitsCommand}"
-                                                        CommandParameter="{Binding ElementName=NameAriaSplits, Path=SelectedValue}" />
-                            </ia:EventTriggerBehavior>
-                        </i:Interaction.Behaviors>
+                        <Interaction.Behaviors>
+                            <EventTriggerBehavior EventName="SelectionChanged">
+                                <InvokeCommandAction Command="{Binding AriaSplitsCommand}"
+                                                     CommandParameter="{Binding ElementName=NameAriaSplits, Path=SelectedValue}" />
+                            </EventTriggerBehavior>
+                        </Interaction.Behaviors>
                     </ComboBox>
                 </StackPanel>
 
@@ -291,12 +362,12 @@
                                 VerticalContentAlignment="Center"
                                 Text="{Binding AriaMaxOverallDownloadLimit}"
                                 ToolTip.Tip="{DynamicResource PressEnterToApplySettingTip}">
-                                <i:Interaction.Behaviors>
-                                    <iac:KeyUpBehavior Key="Enter">
-                                        <ia:InvokeCommandAction Command="{Binding AriaMaxOverallDownloadLimitCommand}"
-                                                                CommandParameter="{Binding ElementName=NameAriaMaxOverallDownloadLimit, Path=Text}" />
-                                    </iac:KeyUpBehavior>
-                                </i:Interaction.Behaviors>
+                                <Interaction.Behaviors>
+                                    <ExecuteCommandOnKeyDownBehavior
+                                        Key="Enter"
+                                        Command="{Binding AriaMaxOverallDownloadLimitCommand}"
+                                        CommandParameter="{Binding ElementName=NameAriaMaxOverallDownloadLimit, Path=Text}" />
+                                </Interaction.Behaviors>
                             </TextBox>
                         </StackPanel>
                         <StackPanel Margin="0,10,0,5" Orientation="Horizontal">
@@ -312,12 +383,12 @@
                                 VerticalContentAlignment="Center"
                                 Text="{Binding AriaMaxDownloadLimit}"
                                 ToolTip.Tip="{DynamicResource PressEnterToApplySettingTip}">
-                                <i:Interaction.Behaviors>
-                                    <iac:KeyUpBehavior Key="Enter">
-                                        <ia:InvokeCommandAction Command="{Binding AriaMaxDownloadLimitCommand}"
-                                                                CommandParameter="{Binding ElementName=NameAriaMaxDownloadLimit, Path=Text}" />
-                                    </iac:KeyUpBehavior>
-                                </i:Interaction.Behaviors>
+                                <Interaction.Behaviors>
+                                    <ExecuteCommandOnKeyDownBehavior
+                                        Key="Enter"
+                                        Command="{Binding AriaMaxDownloadLimitCommand}"
+                                        CommandParameter="{Binding ElementName=NameAriaMaxDownloadLimit, Path=Text}" />
+                                </Interaction.Behaviors>
                             </TextBox>
                         </StackPanel>
                     </StackPanel>
@@ -366,12 +437,12 @@
                             Width="200"
                             VerticalContentAlignment="Center"
                             Text="{Binding AriaHttpProxy}">
-                            <i:Interaction.Behaviors>
-                                <iac:KeyUpBehavior Key="Enter">
-                                    <ia:InvokeCommandAction Command="{Binding AriaHttpProxyCommand}"
-                                                            CommandParameter="{Binding ElementName=NameAriaHttpProxy, Path=Text}" />
-                                </iac:KeyUpBehavior>
-                            </i:Interaction.Behaviors>
+                            <Interaction.Behaviors>
+                                <ExecuteCommandOnKeyDownBehavior
+                                    Key="Enter"
+                                    Command="{Binding AriaHttpProxyCommand}"
+                                    CommandParameter="{Binding ElementName=NameAriaHttpProxy, Path=Text}" />
+                            </Interaction.Behaviors>
                         </TextBox>
                     </StackPanel>
                     <StackPanel Margin="30,0,0,0" Orientation="Horizontal">
@@ -385,12 +456,12 @@
                             Width="100"
                             VerticalContentAlignment="Center"
                             Text="{Binding AriaHttpProxyPort}">
-                            <i:Interaction.Behaviors>
-                                <iac:KeyUpBehavior Key="Enter">
-                                    <ia:InvokeCommandAction Command="{Binding AriaHttpProxyPortCommand}"
-                                                            CommandParameter="{Binding ElementName=NameAriaHttpProxyPort, Path=Text}" />
-                                </iac:KeyUpBehavior>
-                            </i:Interaction.Behaviors>
+                            <Interaction.Behaviors>
+                                <ExecuteCommandOnKeyDownBehavior
+                                    Key="Enter"
+                                    Command="{Binding AriaHttpProxyPortCommand}"
+                                    CommandParameter="{Binding ElementName=NameAriaHttpProxyPort, Path=Text}" />
+                            </Interaction.Behaviors>
                         </TextBox>
                     </StackPanel>
                 </StackPanel>
@@ -408,17 +479,17 @@
                         VerticalContentAlignment="Center"
                         ItemsSource="{Binding AriaFileAllocations}"
                         SelectedValue="{Binding SelectedAriaFileAllocation}">
-                        <i:Interaction.Behaviors>
-                            <ia:EventTriggerBehavior EventName="SelectionChanged">
+                        <Interaction.Behaviors>
+                            <EventTriggerBehavior EventName="SelectionChanged">
                                 <InvokeCommandAction Command="{Binding AriaFileAllocationsCommand}"
                                                      CommandParameter="{Binding ElementName=NameAriaFileAllocations, Path=SelectedValue}" />
-                            </ia:EventTriggerBehavior>
-                        </i:Interaction.Behaviors>
+                            </EventTriggerBehavior>
+                        </Interaction.Behaviors>
                     </ComboBox>
                 </StackPanel>
             </StackPanel>
 
-            <StackPanel x:Name="NameCustomAria" IsVisible="{Binding CustomAria2c}">
+            <StackPanel x:Name="NameCustomAria" IsVisible="{Binding CustomAria2C}">
                 <StackPanel
                     Margin="0,20,0,0"
                     Orientation="Horizontal"
@@ -434,12 +505,12 @@
                         Width="300"
                         VerticalContentAlignment="Center"
                         Text="{Binding AriaHost}">
-                        <i:Interaction.Behaviors>
-                            <iac:KeyUpBehavior Key="Enter">
-                                <ia:InvokeCommandAction Command="{Binding AriaHostCommand}"
-                                                        CommandParameter="{Binding ElementName=NameAriaHost, Path=Text}" />
-                            </iac:KeyUpBehavior>
-                        </i:Interaction.Behaviors>
+                        <Interaction.Behaviors>
+                            <ExecuteCommandOnKeyDownBehavior
+                                Key="Enter"
+                                Command="{Binding AriaHostCommand}"
+                                CommandParameter="{Binding ElementName=NameAriaHost, Path=Text}" />
+                        </Interaction.Behaviors>
                     </TextBox>
                 </StackPanel>
                 <StackPanel
@@ -457,12 +528,12 @@
                         Width="100"
                         VerticalContentAlignment="Center"
                         Text="{Binding AriaListenPort}">
-                        <i:Interaction.Behaviors>
-                            <iac:KeyUpBehavior Key="Enter">
-                                <ia:InvokeCommandAction Command="{Binding AriaListenPortCommand}"
-                                                        CommandParameter="{Binding ElementName=NameAriaPort, Path=Text}" />
-                            </iac:KeyUpBehavior>
-                        </i:Interaction.Behaviors>
+                        <Interaction.Behaviors>
+                            <ExecuteCommandOnKeyDownBehavior
+                                Key="Enter"
+                                Command="{Binding AriaListenPortCommand}"
+                                CommandParameter="{Binding ElementName=NameAriaPort, Path=Text}" />
+                        </Interaction.Behaviors>
                     </TextBox>
                 </StackPanel>
                 <StackPanel
@@ -480,12 +551,12 @@
                         Width="100"
                         VerticalContentAlignment="Center"
                         Text="{Binding AriaToken}">
-                        <i:Interaction.Behaviors>
-                            <iac:KeyUpBehavior Key="Enter">
-                                <ia:InvokeCommandAction Command="{Binding AriaTokenCommand}"
-                                                        CommandParameter="{Binding ElementName=NameAriaToken, Path=Text}" />
-                            </iac:KeyUpBehavior>
-                        </i:Interaction.Behaviors>
+                        <Interaction.Behaviors>
+                            <ExecuteCommandOnKeyDownBehavior
+                                Key="Enter"
+                                Command="{Binding AriaTokenCommand}"
+                                CommandParameter="{Binding ElementName=NameAriaToken, Path=Text}" />
+                        </Interaction.Behaviors>
                     </TextBox>
                 </StackPanel>
             </StackPanel>

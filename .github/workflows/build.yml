@@ -16,11 +16,11 @@ jobs:
       release_body: ${{ steps.git-cliff.outputs.content }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Generate a changelog
-        uses: orhun/git-cliff-action@v2
+        uses: orhun/git-cliff-action@v4
         id: git-cliff
         with:
           config: cliff.toml
@@ -38,12 +38,11 @@ jobs:
         kind: [ zip ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            6.0.x
+          dotnet-version: '6.0.x'
       - name: Read Version Text
         id: version
         uses: juliangruber/read-file-action@v1
@@ -62,7 +61,7 @@ jobs:
           pupnet DownKyi.pupnet.conf --app-version ${{ steps.version.outputs.content }} --kind ${{ matrix.kind }} -r win-${{ matrix.cpu }} -y
         working-directory: ./script/pupnet
       - name: Upload build artifacts ${{ matrix.kind }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: DownKyi-${{ steps.version.outputs.content }}-1.win-${{ matrix.cpu }}.${{ matrix.kind }}
           path: script/pupnet/output/DownKyi-${{ steps.version.outputs.content }}-1.win-${{ matrix.cpu }}.${{ matrix.kind }}
@@ -74,7 +73,7 @@ jobs:
           artifacts: script/pupnet/output/DownKyi-${{ steps.version.outputs.content }}-1.win-${{ matrix.cpu }}.${{ matrix.kind }}
           body: ${{ needs.changelog.outputs.release_body }}
   build-linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: changelog
     strategy:
       matrix:
@@ -107,12 +106,11 @@ jobs:
             cpu: arm64
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            6.0.x
+          dotnet-version: '6.0.x'
       - name: Read Version Text
         id: version
         uses: juliangruber/read-file-action@v1
@@ -135,7 +133,7 @@ jobs:
           pupnet DownKyi.pupnet.conf --app-version ${{ steps.version.outputs.content }} --kind ${{ matrix.kind }} -r linux-${{ matrix.cpu }} -y
         working-directory: ./script/pupnet
       - name: Upload build artifacts ${{ matrix.kind }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.package-head }}${{ steps.version.outputs.content }}_linux_${{ matrix.type }}${{ matrix.package-tail }}.${{ matrix.kind }}
           path: script/pupnet/output/${{ matrix.package-head }}${{ steps.version.outputs.content }}-1${{ matrix.package-tail }}.${{ matrix.kind }}
@@ -158,7 +156,7 @@ jobs:
         cpu: [ x64, arm64 ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Import certificate
         uses: apple-actions/import-codesign-certs@v2
         with:
@@ -170,10 +168,9 @@ jobs:
           export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=true
           brew install create-dmg tree
       - name: Install .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            6.0.x
+          dotnet-version: '6.0.x'
       - name: Read Version Text
         id: version
         uses: juliangruber/read-file-action@v1
@@ -200,7 +197,14 @@ jobs:
           chmod +x sign.sh
           ./sign.sh
         working-directory: ./script/macos
-      - name: Create DMG  
+      - name: Notarize app
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent 哔哩下载姬.app 哔哩下载姬.zip
+          xcrun notarytool submit 哔哩下载姬.zip --apple-id "${{ secrets.APPLE_ID }}" --team-id "${{ secrets.TEAM_ID }}" --password "${{ secrets.APP_SPECIFIC_PASSWORD }}" --wait
+          xcrun stapler staple 哔哩下载姬.app
+          rm -rf ./哔哩下载姬.zip
+        working-directory: ./script/macos
+      - name: Create DMG
         run: |
           create-dmg \
           --hdiutil-quiet \
@@ -210,8 +214,13 @@ jobs:
           --window-size 660 400 \
           DownKyi-${{ steps.version.outputs.content }}-osx-${{ matrix.cpu }}.dmg 哔哩下载姬.app
         working-directory: ./script/macos
+      - name: Notarize DMG
+        run: |
+          xcrun notarytool submit DownKyi-${{ steps.version.outputs.content }}-osx-${{ matrix.cpu }}.dmg --apple-id "${{ secrets.APPLE_ID }}" --team-id "${{ secrets.TEAM_ID }}" --password "${{ secrets.APP_SPECIFIC_PASSWORD }}" --wait
+          xcrun stapler staple DownKyi-${{ steps.version.outputs.content }}-osx-${{ matrix.cpu }}.dmg
+        working-directory: ./script/macos
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: DownKyi-${{ steps.version.outputs.content }}-osx-${{ matrix.cpu }}.dmg
           path: script/macos/DownKyi-${{ steps.version.outputs.content }}-osx-${{ matrix.cpu }}.dmg
