@@ -1,17 +1,22 @@
 ﻿using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
 using DownKyi.Core.Settings;
 using DownKyi.Events;
+using DownKyi.Models;
 using DownKyi.Services;
 using DownKyi.Utils;
+using DownKyi.ViewModels.Dialogs;
 using Prism.Commands;
 using Prism.Events;
 using Prism.Mvvm;
 using Prism.Regions;
+using Prism.Services.Dialogs;
+using IDialogService = DownKyi.PrismExtension.Dialog.IDialogService;
 
 namespace DownKyi.ViewModels;
 
@@ -21,20 +26,14 @@ public class MainWindowViewModel : BindableBase
 
     private readonly IRegionManager _regionManager;
 
+    private readonly IDialogService _dialogService;
+
     private const string ContentRegion = nameof(ContentRegion);
 
     private ClipboardListener? _clipboardListener;
 
     private bool _messageVisibility;
     private string? _oldMessage;
-
-    private WindowState _winState;
-
-    public WindowState WinState
-    {
-        get => _winState;
-        set => SetProperty(ref _winState, value);
-    }
 
     public bool MessageVisibility
     {
@@ -57,8 +56,8 @@ public class MainWindowViewModel : BindableBase
     public DelegateCommand ClosingCommand => _closingCommand ??= _closingCommand = new DelegateCommand(ExecuteClosingCommand);
 
     public DelegateCommand<PointerPressedEventArgs> PointerPressedCommand =>
-        new (ExecutePointerPressed);
-    
+        new(ExecutePointerPressed);
+
     private void ExecuteClosingCommand()
     {
         if (_clipboardListener == null) return;
@@ -80,15 +79,17 @@ public class MainWindowViewModel : BindableBase
             }
         }
     }
-    
-    private UserControl? GetCurrentUserControl() =>  _regionManager
+
+    private UserControl? GetCurrentUserControl() => _regionManager
         .Regions[ContentRegion].ActiveViews
         .FirstOrDefault() as UserControl;
 
-    public MainWindowViewModel(IRegionManager regionManager, IEventAggregator eventAggregator)
+    public MainWindowViewModel(IRegionManager regionManager, IEventAggregator eventAggregator, IDialogService dialogService)
     {
         _eventAggregator = eventAggregator;
         _regionManager = regionManager;
+        _dialogService = dialogService;
+
         #region MyRegion
 
         _eventAggregator.GetEvent<NavigationEvent>().Subscribe(view =>
@@ -124,6 +125,8 @@ public class MainWindowViewModel : BindableBase
 
         LoadedCommand = new DelegateCommand(() =>
         {
+            Upgrade();
+            CheckForUpdates();
             _clipboardListener = new ClipboardListener(App.Current.MainWindow);
             _clipboardListener.Changed += ClipboardListenerOnChanged;
             var param = new NavigationParameters
@@ -131,7 +134,7 @@ public class MainWindowViewModel : BindableBase
                 { "Parent", "" },
                 { "Parameter", "start" }
             };
-            regionManager.RequestNavigate("ContentRegion", ViewIndexViewModel.Tag, param);
+            _regionManager.RequestNavigate("ContentRegion", ViewIndexViewModel.Tag, param);
         });
     }
 
@@ -175,4 +178,30 @@ public class MainWindowViewModel : BindableBase
     }
 
     #endregion
+
+    private void Upgrade()
+    {
+        _dialogService.ShowDialogAsync(ViewUpgradingDialogViewModel.Tag, new DialogParameters(), (result) => { });
+    }
+    
+    private async void CheckForUpdates()
+    {
+        try
+        {
+            var isAutoUpdate = SettingsManager.GetInstance().GetAutoUpdateWhenLaunch() != AllowStatus.Yes;
+            if(isAutoUpdate) return;
+            var service = new VersionCheckerService(App.RepoOwner,App.RepoName,
+                SettingsManager.GetInstance().GetIsReceiveBetaVersion() == AllowStatus.Yes);
+            var release = await service.GetLatestReleaseAsync(SettingsManager.GetInstance().GetSkipVersionOnLaunch());
+            if (release != null && service.IsNewVersionAvailable(release.TagName))
+            {
+                await _dialogService?.ShowDialogAsync(NewVersionAvailableDialogViewModel.Tag, new 
+                    DialogParameters { { "release", release },{"enableSkipVersion",true} })!;
+            }
+        }
+        catch (Exception ex)
+        {
+            /**/
+        }
+    }
 }

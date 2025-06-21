@@ -2,7 +2,6 @@
 using DownKyi.Core.BiliApi.BiliUtils;
 using DownKyi.Core.BiliApi.Zone;
 using DownKyi.Models;
-using DownKyi.PrismExtension.Dialog;
 using DownKyi.Utils;
 using Prism.Mvvm;
 
@@ -10,18 +9,6 @@ namespace DownKyi.ViewModels.DownloadManager
 {
     public class DownloadBaseItem : BindableBase
     {
-        public IDialogService? DialogService;
-
-        public DownloadBaseItem()
-        {
-            DialogService = null;
-        }
-
-        public DownloadBaseItem(IDialogService? dialogService)
-        {
-            DialogService = dialogService;
-        }
-
         // model数据
         private DownloadBase? _downloadBase;
 
@@ -40,9 +27,9 @@ namespace DownKyi.ViewModels.DownloadManager
         }
 
         // 视频分区image
-        private DrawingImage _zoneImage;
+        private DrawingImage? _zoneImage;
 
-        public DrawingImage ZoneImage
+        public DrawingImage? ZoneImage
         {
             get => _zoneImage;
             set => SetProperty(ref _zoneImage, value);
@@ -54,8 +41,8 @@ namespace DownKyi.ViewModels.DownloadManager
             get => DownloadBase == null ? 0 : DownloadBase.Order;
             set
             {
-                DownloadBase.Order = value;
-                RaisePropertyChanged("Order");
+                if (DownloadBase != null) DownloadBase.Order = value;
+                RaisePropertyChanged();
             }
         }
 
@@ -65,8 +52,8 @@ namespace DownKyi.ViewModels.DownloadManager
             get => DownloadBase == null ? "" : DownloadBase.MainTitle;
             set
             {
-                DownloadBase.MainTitle = value;
-                RaisePropertyChanged("MainTitle");
+                if (DownloadBase != null) DownloadBase.MainTitle = value;
+                RaisePropertyChanged();
             }
         }
 
@@ -76,8 +63,8 @@ namespace DownKyi.ViewModels.DownloadManager
             get => DownloadBase == null ? "" : DownloadBase.Name;
             set
             {
-                DownloadBase.Name = value;
-                RaisePropertyChanged("Name");
+                if (DownloadBase != null) DownloadBase.Name = value;
+                RaisePropertyChanged();
             }
         }
 
@@ -87,8 +74,8 @@ namespace DownKyi.ViewModels.DownloadManager
             get => DownloadBase == null ? "" : DownloadBase.Duration;
             set
             {
-                DownloadBase.Duration = value;
-                RaisePropertyChanged("Duration");
+                if (DownloadBase != null) DownloadBase.Duration = value;
+                RaisePropertyChanged();
             }
         }
 
@@ -98,8 +85,8 @@ namespace DownKyi.ViewModels.DownloadManager
             get => DownloadBase == null ? "" : DownloadBase.VideoCodecName;
             set
             {
-                DownloadBase.VideoCodecName = value;
-                RaisePropertyChanged("VideoCodecName");
+                if (DownloadBase != null) DownloadBase.VideoCodecName = value;
+                RaisePropertyChanged();
             }
         }
 
@@ -109,8 +96,8 @@ namespace DownKyi.ViewModels.DownloadManager
             get => DownloadBase == null ? null : DownloadBase.Resolution;
             set
             {
-                DownloadBase.Resolution = value;
-                RaisePropertyChanged("Resolution");
+                if (DownloadBase != null) DownloadBase.Resolution = value;
+                RaisePropertyChanged();
             }
         }
 
@@ -120,19 +107,19 @@ namespace DownKyi.ViewModels.DownloadManager
             get => DownloadBase == null ? null : DownloadBase.AudioCodec;
             set
             {
-                DownloadBase.AudioCodec = value;
-                RaisePropertyChanged("AudioCodec");
+                if (DownloadBase != null) DownloadBase.AudioCodec = value;
+                RaisePropertyChanged();
             }
         }
 
         // 文件大小
-        public string FileSize
+        public string? FileSize
         {
             get => DownloadBase == null ? "" : DownloadBase.FileSize;
             set
             {
-                DownloadBase.FileSize = value;
-                RaisePropertyChanged("FileSize");
+                if (DownloadBase != null) DownloadBase.FileSize = value;
+                RaisePropertyChanged();
             }
         }
     }

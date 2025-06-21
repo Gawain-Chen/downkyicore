@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -32,6 +33,7 @@ public class AddToDownloadService
     private IInfoService _videoInfoService;
     private VideoInfoView? _videoInfoView;
     private List<VideoSection>? _videoSections;
+    private DownloadStorageService _downloadStorageService = (DownloadStorageService)App.Current.Container.Resolve(typeof(DownloadStorageService));
 
     // 下载内容
     private bool _downloadAudio = true;
@@ -287,6 +289,8 @@ public class AddToDownloadService
 
                 // 如果存在正在下载列表，则跳过，并提示
                 var isDownloading = false;
+
+
                 foreach (var item in App.DownloadingList)
                 {
                     if (item.DownloadBase == null)
@@ -294,9 +298,15 @@ public class AddToDownloadService
                         continue;
                     }
 
-                    if (item.DownloadBase.Cid == page.Cid && item.Resolution.Id == page.VideoQuality.Quality &&
-                        item.AudioCodec.Name == page.AudioQualityFormat &&
-                        item.VideoCodecName == page.VideoQuality.SelectedVideoCodec)
+                    bool f = item.DownloadBase.Cid == page.Cid &&
+                             item.Resolution.Id == page.VideoQuality.Quality &&
+                             item.VideoCodecName == page.VideoQuality.SelectedVideoCodec &&
+                             (
+                                 (page.PlayUrl.Dash != null && item.AudioCodec.Name == page.AudioQualityFormat) ||
+                                 (page.PlayUrl.Dash == null && page.PlayUrl.Durl != null)
+                             );
+
+                    if (f)
                     {
                         eventAggregator.GetEvent<MessageEvent>()
                             .Publish($"{page.Name}{DictionaryResource.GetString("TipAlreadyToAddDownloading")}");
@@ -319,8 +329,15 @@ public class AddToDownloadService
                         continue;
                     }
 
-                    if (item.DownloadBase.Cid == page.Cid && item.Resolution.Id == page.VideoQuality.Quality && item.AudioCodec.Name == page.AudioQualityFormat &&
-                        item.VideoCodecName == page.VideoQuality.SelectedVideoCodec)
+                    bool f = item.DownloadBase.Cid == page.Cid &&
+                             item.Resolution.Id == page.VideoQuality.Quality &&
+                             item.VideoCodecName == page.VideoQuality.SelectedVideoCodec &&
+                             (
+                                 (page.PlayUrl.Dash != null && item.AudioCodec.Name == page.AudioQualityFormat) ||
+                                 (page.PlayUrl.Dash == null && page.PlayUrl.Durl != null)
+                             );
+
+                    if (f)
                     {
                         // eventAggregator.GetEvent<MessageEvent>().Publish($"{page.Name}{DictionaryResource.GetString("TipAlreadyToAddDownloaded")}");
                         // isDownloaded = true;
@@ -342,7 +359,11 @@ public class AddToDownloadService
 
                                 if (result == ButtonResult.OK)
                                 {
-                                    App.PropertyChangeAsync(() => { App.DownloadedList.Remove(item); });
+                                    App.PropertyChangeAsync(() =>
+                                    {
+                                        App.DownloadedList.Remove(item);
+                                        _downloadStorageService.RemoveDownloaded(item);
+                                    });
                                     isDownloaded = false;
                                 }
                                 else

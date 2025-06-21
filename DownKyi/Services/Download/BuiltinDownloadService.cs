@@ -10,6 +10,7 @@ using DownKyi.Core.BiliApi.VideoStream.Models;
 using DownKyi.Core.Logging;
 using DownKyi.Core.Settings;
 using DownKyi.Core.Utils;
+using DownKyi.Models;
 using DownKyi.PrismExtension.Dialog;
 using DownKyi.Utils;
 using DownKyi.ViewModels.DownloadManager;
@@ -55,6 +56,17 @@ public class BuiltinDownloadService : DownloadService, IDownloadService
         var downloadVideo = BaseDownloadVideo(downloading);
 
         return DownloadVideo(downloading, downloadVideo);
+    }
+
+    private string DownloadVideo(DownloadingItem downloading, VideoPlayUrlBasic? downloadVideo)
+    {
+        return DownloadVideo(downloading, new PlayUrlDashVideo
+        {
+            Id = downloadVideo.Id,
+            Codecs = downloadVideo.Codecs,
+            BaseUrl = downloadVideo.BaseUrl,
+            BackupUrl = downloadVideo.BackupUrl
+        });
     }
 
     /// <summary>
@@ -165,7 +177,7 @@ public class BuiltinDownloadService : DownloadService, IDownloadService
             }
             else
             {
-                return nullMark;
+                return NullMark;
             }
         }
         catch (FileNotFoundException e)
@@ -173,7 +185,7 @@ public class BuiltinDownloadService : DownloadService, IDownloadService
             Console.PrintLine("BuiltinDownloadService.DownloadVideo()发生异常: {0}", e);
             LogManager.Error("BuiltinDownloadService.DownloadVideo()", e);
 
-            return nullMark;
+            return NullMark;
         }
     }
 
@@ -262,7 +274,7 @@ public class BuiltinDownloadService : DownloadService, IDownloadService
     /// <exception cref="OperationCanceledException"></exception>
     protected override void Pause(DownloadingItem downloading)
     {
-        cancellationToken.ThrowIfCancellationRequested();
+        CancellationToken?.ThrowIfCancellationRequested();
 
         downloading.DownloadStatusTitle = DictionaryResource.GetString("Pausing");
         if (downloading.Downloading.DownloadStatus == DownloadStatus.Pause)
@@ -285,7 +297,7 @@ public class BuiltinDownloadService : DownloadService, IDownloadService
     /// <returns></returns>
     private bool IsExist(DownloadingItem downloading)
     {
-        return downloadingList.Contains(downloading);
+        return DownloadingList.Contains(downloading);
     }
 
     #region 内建下载器
@@ -304,7 +316,10 @@ public class BuiltinDownloadService : DownloadService, IDownloadService
         path = path.TrimEnd('/').TrimEnd('\\');
         var requestConfiguration = new RequestConfiguration
         {
-            CookieContainer = LoginHelper.GetLoginInfoCookies(),
+            Headers = new WebHeaderCollection()
+            {
+                { "cookie", LoginHelper.GetLoginInfoCookiesString() }
+            },
             UserAgent = SettingsManager.GetInstance().GetUserAgent(),
             Referer = "https://www.bilibili.com",
         };
@@ -364,7 +379,7 @@ public class BuiltinDownloadService : DownloadService, IDownloadService
             // 阻塞当前任务，监听暂停事件
             while (!isComplete)
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                CancellationToken?.ThrowIfCancellationRequested();
                 switch (downloading.Downloading.DownloadStatus)
                 {
                     case DownloadStatus.Pause:

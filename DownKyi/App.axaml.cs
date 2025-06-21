@@ -10,6 +10,8 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using DownKyi.Core.Settings;
+using DownKyi.Core.Storage;
+using DownKyi.Models;
 using DownKyi.PrismExtension.Dialog;
 using DownKyi.Services.Download;
 using DownKyi.Utils;
@@ -27,6 +29,7 @@ using DownKyi.Views.Friends;
 using DownKyi.Views.Settings;
 using DownKyi.Views.Toolbox;
 using DownKyi.Views.UserSpace;
+using FreeSql;
 using Prism.DryIoc;
 using Prism.Ioc;
 using ViewSeasonsSeries = DownKyi.Views.ViewSeasonsSeries;
@@ -36,25 +39,29 @@ namespace DownKyi;
 
 public partial class App : PrismApplication
 {
-    public static ObservableCollection<DownloadingItem>? DownloadingList { get; set; }
-    public static ObservableCollection<DownloadedItem>? DownloadedList { get; set; }
+    public const string RepoOwner = "yaobiao131";
+    public const string RepoName = "downkyicore";
+
+    public static ObservableCollection<DownloadingItem> DownloadingList { get; set; } = new();
+    public static ObservableCollection<DownloadedItem> DownloadedList { get; set; } = new();
     public new static App Current => (App)Application.Current!;
     public new MainWindow MainWindow => Container.Resolve<MainWindow>();
     public IClassicDesktopStyleApplicationLifetime? AppLife;
+
+    private static Mutex _mutex;
 
     // 下载服务
     private IDownloadService? _downloadService;
 
     public override void Initialize()
     {
-        if (!Design.IsDesignMode)
-        {
-            var mutex = new Mutex(true, "Global\\DownKyi", out var createdNew);
-            if (!createdNew)
-            {
-                Environment.Exit(0);
-            }
-        }
+#if !DEBUG
+              _mutex = new Mutex(true, "Global\\DownKyi", out var createdNew);
+                if (!createdNew)
+                {
+                    Environment.Exit(0);
+                }
+#endif
 
         AvaloniaXamlLoader.Load(this);
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
@@ -68,6 +75,34 @@ public partial class App : PrismApplication
 
     protected override void RegisterTypes(IContainerRegistry containerRegistry)
     {
+        containerRegistry.RegisterSingleton<IFreeSql>(() =>
+        {
+            var freeSql = new FreeSqlBuilder()
+                .UseConnectionString(DataType.Sqlite, $"Data Source={StorageManager.GetDbPath()}")
+                .UseAdoConnectionPool(true)
+#if DEBUG
+                .UseMonitorCommand(cmd => Console.WriteLine($"Sql：{cmd.CommandText}"))
+#endif
+                .Build();
+            freeSql.UseJsonMap();
+            return freeSql;
+        });
+        containerRegistry.RegisterSingleton<DownloadStorageService>();
+        containerRegistry.RegisterScoped<IBaseRepository<Downloading>>(cp =>
+        {
+            var freeSql = (IFreeSql)cp.Resolve(typeof(IFreeSql));
+            var downloadingRepository = freeSql.GetRepository<Downloading>();
+            downloadingRepository.DbContextOptions.EnableCascadeSave = true;
+            return downloadingRepository;
+        });
+        containerRegistry.RegisterScoped<IBaseRepository<Downloaded>>(cp =>
+        {
+            var freeSql = (IFreeSql)cp.Resolve(typeof(IFreeSql));
+            var downloadRepository = freeSql.GetRepository<Downloaded>();
+            downloadRepository.DbContextOptions.EnableCascadeSave = true;
+            return downloadRepository;
+        });
+
         containerRegistry.RegisterSingleton<MainWindow>();
         containerRegistry.RegisterSingleton<IDialogService, DialogService>();
         containerRegistry.Register<IDialogWindow, DialogWindow>();
@@ -123,17 +158,19 @@ public partial class App : PrismApplication
         containerRegistry.RegisterDialog<ViewParsingSelector>(ViewParsingSelectorViewModel.Tag);
         containerRegistry.RegisterDialog<ViewAlreadyDownloadedDialog>(ViewAlreadyDownloadedDialogViewModel.Tag);
         containerRegistry.RegisterDialog<NewVersionAvailableDialog>(NewVersionAvailableDialogViewModel.Tag);
+        containerRegistry.RegisterDialog<ViewUpgradingDialog>(ViewUpgradingDialogViewModel.Tag);
     }
 
 
     protected override AvaloniaObject CreateShell()
     {
-        // 初始化数据
-        DownloadingList = new ObservableCollection<DownloadingItem>();
-        DownloadedList = new ObservableCollection<DownloadedItem>();
+        if (!Design.IsDesignMode)
+        {
+            Container.Resolve<IFreeSql>().CodeFirst.SyncStructure(typeof(DownloadBase), typeof(Downloaded), typeof(Downloading));
+        }
 
         // 下载数据存储服务
-        var downloadStorageService = new DownloadStorageService();
+        var downloadStorageService = Container.Resolve<DownloadStorageService>();
 
         // 从数据库读取
         var downloadingItems = downloadStorageService.GetDownloading();
@@ -177,37 +214,37 @@ public partial class App : PrismApplication
         };
 
         // 下载完成列表发生变化时执行的任务
-        DownloadedList.CollectionChanged += async (sender, e) =>
-        {
-            await Task.Run(() =>
-            {
-                if (e.Action == NotifyCollectionChangedAction.Add)
-                {
-                    if (e.NewItems == null) return;
-                    foreach (var item in e.NewItems)
-                    {
-                        if (item is DownloadedItem downloaded)
-                        {
-                            //Console.WriteLine("DownloadedList添加");
-                            downloadStorageService.AddDownloaded(downloaded);
-                        }
-                    }
-                }
-
-                if (e.Action == NotifyCollectionChangedAction.Remove)
-                {
-                    if (e.OldItems == null) return;
-                    foreach (var item in e.OldItems)
-                    {
-                        if (item is DownloadedItem downloaded)
-                        {
-                            //Console.WriteLine("DownloadedList移除");
-                            downloadStorageService.RemoveDownloaded(downloaded);
-                        }
-                    }
-                }
-            });
-        };
+        // DownloadedList.CollectionChanged += async (sender, e) =>
+        // {
+        //     await Task.Run(() =>
+        //     {
+        //         if (e.Action == NotifyCollectionChangedAction.Add)
+        //         {
+        //             if (e.NewItems == null) return;
+        //             foreach (var item in e.NewItems)
+        //             {
+        //                 if (item is DownloadedItem downloaded)
+        //                 {
+        //                     //Console.WriteLine("DownloadedList添加");
+        //                     downloadStorageService.AddDownloaded(downloaded);
+        //                 }
+        //             }
+        //         }
+        //
+        //         if (e.Action == NotifyCollectionChangedAction.Remove)
+        //         {
+        //             if (e.OldItems == null) return;
+        //             foreach (var item in e.OldItems)
+        //             {
+        //                 if (item is DownloadedItem downloaded)
+        //                 {
+        //                     //Console.WriteLine("DownloadedList移除");
+        //                     downloadStorageService.RemoveDownloaded(downloaded);
+        //                 }
+        //             }
+        //         }
+        //     });
+        // };
 
         // 启动下载服务
         var download = SettingsManager.GetInstance().GetDownloader();
@@ -255,33 +292,43 @@ public partial class App : PrismApplication
     /// <param name="finishedSort"></param>
     public static void SortDownloadedList(DownloadFinishedSort finishedSort)
     {
-        var list = DownloadedList?.ToList();
+        var list = DownloadedList.ToList();
         switch (finishedSort)
         {
             case DownloadFinishedSort.DownloadAsc:
                 // 按下载先后排序
-                list?.Sort((x, y) => x.Downloaded.FinishedTimestamp.CompareTo(y.Downloaded.FinishedTimestamp));
+                list.Sort((x, y) => x.Downloaded.FinishedTimestamp.CompareTo(y.Downloaded.FinishedTimestamp));
                 break;
             case DownloadFinishedSort.DownloadDesc:
                 // 按下载先后排序
-                list?.Sort((x, y) => y.Downloaded.FinishedTimestamp.CompareTo(x.Downloaded.FinishedTimestamp));
+                list.Sort((x, y) => y.Downloaded.FinishedTimestamp.CompareTo(x.Downloaded.FinishedTimestamp));
                 break;
             case DownloadFinishedSort.Number:
                 // 按序号排序
-                list?.Sort((x, y) =>
+                list.Sort((x, y) =>
                 {
                     var compare = string.Compare(x.MainTitle, y.MainTitle, StringComparison.Ordinal);
                     return compare == 0 ? x.Order.CompareTo(y.Order) : compare;
                 });
                 break;
+            case DownloadFinishedSort.NotSet:
             default:
                 break;
         }
 
         // 更新下载完成列表
         // 如果有更好的方法再重写
-        DownloadedList?.Clear();
-        list?.ForEach(item => DownloadedList?.Add(item));
+        DownloadedList.Clear();
+        list.ForEach(item => DownloadedList.Add(item));
+    }
+
+    public void RefreshDownloadedList()
+    {
+        // 重新获取下载完成列表
+        var downloadStorageService = Container.Resolve<DownloadStorageService>();
+        var downloadedItems = downloadStorageService.GetDownloaded();
+        DownloadedList.Clear();
+        DownloadedList.AddRange(downloadedItems);
     }
 
     private void OnExit(object sender, ControlledApplicationLifetimeExitEventArgs e)

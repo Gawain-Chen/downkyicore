@@ -1,19 +1,19 @@
 ﻿using System;
+using FreeSql.DataAnnotations;
 
 namespace DownKyi.Models;
 
-[Serializable]
-public class Downloaded // : DownloadBase
+[Table(Name = "downloaded")]
+public class Downloaded
 {
-    public Downloaded() : base()
-    {
-    }
+    [Column(IsPrimary = true, Name = "id")]
+    public string Id { get; set; } = null!;
 
     //  下载速度
-    public string? MaxSpeedDisplay { get; set; }
+    [Column(Name = "max_speed_display")] public string? MaxSpeedDisplay { get; set; }
 
     // 完成时间戳
-    public long FinishedTimestamp { get; set; }
+    [Column(Name = "finished_timestamp")] public long FinishedTimestamp { get; set; }
 
     public void SetFinishedTimestamp(long finishedTimestamp)
     {
@@ -25,5 +25,7 @@ public class Downloaded // : DownloadBase
     }
 
     // 完成时间
-    public string FinishedTime { get; set; }
+    [Column(Name = "finished_time")] public string FinishedTime { get; set; }
+
+    [Navigate(nameof(Id))] public DownloadBase? DownloadBase { get; set; }
 }

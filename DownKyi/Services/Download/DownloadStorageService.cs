@@ -1,20 +1,21 @@
-﻿using DownKyi.Core.Storage.Database.Download;
+﻿using System.Collections.Generic;
+using System.Linq;
 using DownKyi.Models;
 using DownKyi.ViewModels.DownloadManager;
-using System.Collections.Generic;
+using FreeSql;
 
 namespace DownKyi.Services.Download;
 
 public class DownloadStorageService
 {
-    ~DownloadStorageService()
+    private readonly IBaseRepository<Downloading> _downloadingRepository;
+    private readonly IBaseRepository<Downloaded> _downloadedRepository;
+
+
+    public DownloadStorageService(IBaseRepository<Downloading> downloadingRepository, IBaseRepository<Downloaded> downloadedRepository)
     {
-        var downloadingDb = new DownloadingDb();
-        downloadingDb.Close();
-        var downloadedDb = new DownloadedDb();
-        downloadedDb.Close();
-        var downloadBaseDb = new DownloadBaseDb();
-        downloadBaseDb.Close();
+        _downloadingRepository = downloadingRepository;
+        _downloadedRepository = downloadedRepository;
     }
 
     #region 下载中数据
@@ -30,15 +31,11 @@ public class DownloadStorageService
             return;
         }
 
-        AddDownloadBase(downloadingItem.DownloadBase);
+        var downloading = downloadingItem.Downloading;
+        downloading.Id = downloadingItem.DownloadBase.Id;
+        downloading.DownloadBase = downloadingItem.DownloadBase;
 
-        var downloadingDb = new DownloadingDb();
-        var obj = downloadingDb.QueryById(downloadingItem.DownloadBase.Uuid);
-        if (obj == null)
-        {
-            downloadingDb.Insert(downloadingItem.DownloadBase.Uuid, downloadingItem.Downloading);
-        }
-        //downloadingDb.Close();
+        _downloadingRepository.InsertOrUpdate(downloading);
     }
 
     /// <summary>
@@ -52,11 +49,7 @@ public class DownloadStorageService
             return;
         }
 
-        RemoveDownloadBase(downloadingItem.DownloadBase.Uuid);
-
-        var downloadingDb = new DownloadingDb();
-        downloadingDb.Delete(downloadingItem.DownloadBase.Uuid);
-        //downloadingDb.Close();
+        _downloadingRepository.Delete(it => it.Id == downloadingItem.Downloading.Id);
     }
 
     /// <summary>
@@ -65,31 +58,9 @@ public class DownloadStorageService
     /// <returns></returns>
     public List<DownloadingItem> GetDownloading()
     {
-        // 从数据库获取数据
-        var downloadingDb = new DownloadingDb();
-        var dic = downloadingDb.QueryAll();
-        //downloadingDb.Close();
+        var downloadingList = _downloadingRepository.Select.ToList();
 
-        // 遍历
-        var list = new List<DownloadingItem>();
-        foreach (var item in dic)
-        {
-            if (item.Value is not Downloading downloading) continue;
-            var downloadingItem = new DownloadingItem
-            {
-                DownloadBase = GetDownloadBase(item.Key),
-                Downloading = downloading
-            };
-
-            if (downloadingItem.DownloadBase == null)
-            {
-                continue;
-            }
-
-            list.Add(downloadingItem);
-        }
-
-        return list;
+        return downloadingList.Select(downloading => new DownloadingItem { Downloading = downloading, DownloadBase = downloading.DownloadBase }).ToList();
     }
 
     /// <summary>
@@ -103,11 +74,10 @@ public class DownloadStorageService
             return;
         }
 
-        UpdateDownloadBase(downloadingItem.DownloadBase);
+        var downloading = downloadingItem.Downloading;
+        downloading.DownloadBase = downloadingItem.DownloadBase;
 
-        var downloadingDb = new DownloadingDb();
-        downloadingDb.Update(downloadingItem.DownloadBase.Uuid, downloadingItem.Downloading);
-        //downloadingDb.Close();
+        _downloadingRepository.Update(downloading);
     }
 
     #endregion
@@ -125,15 +95,13 @@ public class DownloadStorageService
             return;
         }
 
-        AddDownloadBase(downloadedItem.DownloadBase);
-
-        var downloadedDb = new DownloadedDb();
-        var obj = downloadedDb.QueryById(downloadedItem.DownloadBase.Uuid);
-        if (obj == null)
+        var downloaded = downloadedItem.Downloaded;
+        downloaded.Id = downloadedItem.DownloadBase.Id;
+        var exists = _downloadedRepository.Select.Any(download => download.Id == downloaded.Id);
+        if (!exists)
         {
-            downloadedDb.Insert(downloadedItem.DownloadBase.Uuid, downloadedItem.Downloaded);
+            _downloadedRepository.Insert(downloaded);
         }
-        //downloadedDb.Close();
     }
 
     /// <summary>
@@ -147,11 +115,7 @@ public class DownloadStorageService
             return;
         }
 
-        RemoveDownloadBase(downloadedItem.DownloadBase.Uuid);
-
-        var downloadedDb = new DownloadedDb();
-        downloadedDb.Delete(downloadedItem.DownloadBase.Uuid);
-        //downloadedDb.Close();
+        _downloadedRepository.Delete(it => it.Id == downloadedItem.Downloaded.Id);
     }
 
     /// <summary>
@@ -160,33 +124,9 @@ public class DownloadStorageService
     /// <returns></returns>
     public List<DownloadedItem> GetDownloaded()
     {
-        // 从数据库获取数据
-        var downloadedDb = new DownloadedDb();
-        var dic = downloadedDb.QueryAll();
-        //downloadedDb.Close();
+        var downloadedList = _downloadedRepository.Select.LeftJoin(downloaded => downloaded.DownloadBase.Id == downloaded.Id).ToList();
 
-        // 遍历
-        var list = new List<DownloadedItem>();
-        foreach (var item in dic)
-        {
-            if (item.Value is Downloaded downloaded)
-            {
-                var downloadedItem = new DownloadedItem
-                {
-                    DownloadBase = GetDownloadBase(item.Key),
-                    Downloaded = downloaded
-                };
-
-                if (downloadedItem.DownloadBase == null)
-                {
-                    continue;
-                }
-
-                list.Add(downloadedItem);
-            }
-        }
-
-        return list;
+        return downloadedList.Select(downloaded => new DownloadedItem { Downloaded = downloaded, DownloadBase = downloaded.DownloadBase }).ToList();
     }
 
     /// <summary>
@@ -200,75 +140,14 @@ public class DownloadStorageService
             return;
         }
 
-        UpdateDownloadBase(downloadedItem.DownloadBase);
-
-        var downloadedDb = new DownloadedDb();
-        downloadedDb.Update(downloadedItem.DownloadBase.Uuid, downloadedItem.Downloaded);
-        //downloadedDb.Close();
+        var downloaded = downloadedItem.Downloaded;
+        downloaded.DownloadBase = downloadedItem.DownloadBase;
+        _downloadedRepository.Update(downloaded);
     }
 
-    #endregion
-
-    #region DownloadBase
-
-    /// <summary>
-    /// 向数据库添加DownloadBase
-    /// </summary>
-    /// <param name="downloadBase"></param>
-    private void AddDownloadBase(DownloadBase? downloadBase)
+    public void ClearDownloaded()
     {
-        if (downloadBase == null)
-        {
-            return;
-        }
-
-        var downloadBaseDb = new DownloadBaseDb();
-        var obj = downloadBaseDb.QueryById(downloadBase.Uuid);
-        if (obj == null)
-        {
-            downloadBaseDb.Insert(downloadBase.Uuid, downloadBase);
-        }
-        //downloadBaseDb.Close();
-    }
-
-    /// <summary>
-    /// 从数据库删除DownloadBase
-    /// </summary>
-    /// <param name="uuid"></param>
-    private void RemoveDownloadBase(string uuid)
-    {
-        var downloadBaseDb = new DownloadBaseDb();
-        downloadBaseDb.Delete(uuid);
-        //downloadBaseDb.Close();
-    }
-
-    /// <summary>
-    /// 从数据库获取所有的DownloadBase
-    /// </summary>
-    /// <returns></returns>
-    private DownloadBase GetDownloadBase(string uuid)
-    {
-        var downloadBaseDb = new DownloadBaseDb();
-        var obj = downloadBaseDb.QueryById(uuid);
-        //downloadBaseDb.Close();
-
-        return obj is DownloadBase downloadBase ? downloadBase : null;
-    }
-
-    /// <summary>
-    /// 从数据库修改DownloadBase
-    /// </summary>
-    /// <param name="downloadBase"></param>
-    private void UpdateDownloadBase(DownloadBase? downloadBase)
-    {
-        if (downloadBase == null)
-        {
-            return;
-        }
-
-        var downloadBaseDb = new DownloadBaseDb();
-        downloadBaseDb.Update(downloadBase.Uuid, downloadBase);
-        //downloadBaseDb.Close();
+        _downloadedRepository.DeleteCascadeByDatabase(item => true);
     }
 
     #endregion
