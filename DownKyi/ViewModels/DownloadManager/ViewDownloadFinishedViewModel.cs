@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
-using DownKyi.Core.Settings;
+﻿using DownKyi.Core.Settings;
 using DownKyi.Events;
 using DownKyi.Services;
 using DownKyi.Services.Download;
@@ -11,6 +6,11 @@ using DownKyi.Utils;
 using Prism.Commands;
 using Prism.Events;
 using Prism.Services.Dialogs;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
 using IDialogService = DownKyi.PrismExtension.Dialog.IDialogService;
 
 namespace DownKyi.ViewModels.DownloadManager;
@@ -109,74 +109,6 @@ public class ViewDownloadFinishedViewModel : ViewModelBase
     private DelegateCommand? _clearAllDownloadedCommand;
     public DelegateCommand ClearAllDownloadedCommand => _clearAllDownloadedCommand ??= new DelegateCommand(ExecuteClearAllDownloadedCommand);
 
-        public ViewDownloadFinishedViewModel(IEventAggregator eventAggregator, IDialogService dialogService) : base(eventAggregator, dialogService)
-        {
-            // 初始化DownloadedList
-            DownloadedList = App.DownloadedList ?? new();
-            DownloadedList.CollectionChanged += (sender, e) =>
-            {
-                if (e.Action == NotifyCollectionChangedAction.Add)
-                {
-                    SetDialogService();
-                }
-            };
-            SetDialogService();
-
-            var finishedSort = SettingsManager.GetInstance().GetDownloadFinishedSort();
-            FinishedSortBy = finishedSort switch
-            {
-                DownloadFinishedSort.DownloadAsc => 0,
-                DownloadFinishedSort.DownloadDesc => 1,
-                DownloadFinishedSort.Number => 2,
-                _ => 0
-            };
-            App.SortDownloadedList(finishedSort);
-        }
-
-        #region 命令申明
-
-        // 下载完成列表排序事件
-        private DelegateCommand<object>? _finishedSortCommand;
-        public DelegateCommand<object> FinishedSortCommand => _finishedSortCommand ??= new DelegateCommand<object>(ExecuteFinishedSortCommand);
-
-        /// <summary>
-        /// 下载完成列表排序事件
-        /// </summary>
-        /// <param name="parameter"></param>
-        private void ExecuteFinishedSortCommand(object parameter)
-        {
-            if (parameter is not int index) { return; }
-
-            switch (index)
-            {
-                case 0:
-                    App.SortDownloadedList(DownloadFinishedSort.DownloadAsc);
-                    // 更新设置
-                    SettingsManager.GetInstance().SetDownloadFinishedSort(DownloadFinishedSort.DownloadAsc);
-                    break;
-                case 1:
-                    App.SortDownloadedList(DownloadFinishedSort.DownloadDesc);
-                    // 更新设置
-                    SettingsManager.GetInstance().SetDownloadFinishedSort(DownloadFinishedSort.DownloadDesc);
-                    break;
-                case 2:
-                    App.SortDownloadedList(DownloadFinishedSort.Number);
-                    // 更新设置
-                    SettingsManager.GetInstance().SetDownloadFinishedSort(DownloadFinishedSort.Number);
-                    break;
-                default:
-                    App.SortDownloadedList(DownloadFinishedSort.DownloadAsc);
-                    // 更新设置
-                    SettingsManager.GetInstance().SetDownloadFinishedSort(DownloadFinishedSort.DownloadAsc);
-                    break;
-            }
-        }
-
-        // 清空下载完成列表事件
-        private DelegateCommand? _clearAllDownloadedCommand;
-        public DelegateCommand ClearAllDownloadedCommand => _clearAllDownloadedCommand ??= new DelegateCommand(ExecuteClearAllDownloadedCommand);
-
-
     /// <summary>
     /// 清空下载完成列表事件
     /// </summary>
@@ -203,29 +135,6 @@ public class ViewDownloadFinishedViewModel : ViewModelBase
             var alertService = new AlertService(DialogService);
             await alertService.ShowError(e.Message);
         }
-    }
-
-        #endregion
-
-        private void SetDialogService()
-        {
-            try
-            {
-                foreach (var item in DownloadedList)
-                {
-                    if (item != null && item.DialogService == null)
-                    {
-                        item.DialogService = DialogService;
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Console.PrintLine("SetDialogService()发生异常: {0}", e);
-                LogManager.Error($"{Tag}.SetDialogService()", e);
-            }
-        }
-
     }
 
     // 打开视频事件
