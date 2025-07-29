@@ -1,4 +1,9 @@
-﻿using DownKyi.Core.Settings;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using DownKyi.Core.Settings;
 using DownKyi.Events;
 using DownKyi.Services;
 using DownKyi.Services.Download;
@@ -6,11 +11,6 @@ using DownKyi.Utils;
 using Prism.Commands;
 using Prism.Events;
 using Prism.Services.Dialogs;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
 using IDialogService = DownKyi.PrismExtension.Dialog.IDialogService;
 
 namespace DownKyi.ViewModels.DownloadManager;
