@@ -8,6 +8,7 @@
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
         <ApplicationIcon>Resources\favicon.ico</ApplicationIcon>
+        <PlatformTarget>x64</PlatformTarget>
     </PropertyGroup>
 
     <ItemGroup>
