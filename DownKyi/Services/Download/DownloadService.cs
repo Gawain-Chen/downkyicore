@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
+using System.Xml.Serialization;
 using DownKyi.Core.BiliApi.BiliUtils;
 using DownKyi.Core.BiliApi.VideoStream;
 using DownKyi.Core.BiliApi.VideoStream.Models;
@@ -294,6 +296,27 @@ public abstract class DownloadService
         return srtFiles;
     }
 
+
+    protected void GenerateNfoFile(DownloadingItem downloading)
+    {
+        if (downloading.Metadata == null) return;
+        var serializer = new XmlSerializer(typeof(MovieMetadata));
+        var settings = new XmlWriterSettings { Indent = true };
+        try
+        {
+            string filePath = $"{downloading.DownloadBase.FilePath}.nfo";
+            using var writer = XmlWriter.Create(filePath, settings);
+#pragma warning disable IL2026
+            serializer.Serialize(writer, downloading.Metadata);
+#pragma warning restore IL2026
+        }
+        catch (Exception e)
+        {
+            /**/
+        }
+    }
+
+
     protected string BaseMixedFlow(DownloadingItem downloading, string? audioUid, string? videoUid)
     {
         // 更新状态显示
@@ -407,6 +430,9 @@ public abstract class DownloadService
                 break;
         }
     }
+    
+    private readonly SemaphoreSlim _downloadSemaphore = new (SettingsManager.GetInstance()
+        .GetMaxCurrentDownloads());
 
     /// <summary>
     /// 执行任务
@@ -416,35 +442,22 @@ public abstract class DownloadService
         // 上次循环时正在下载的数量
         var lastDownloadingCount = 0;
 
-        while (true)
+        while (CancellationToken.HasValue && 
+               !CancellationToken.Value.IsCancellationRequested)
         {
-            var maxDownloading = SettingsManager.GetInstance().GetMaxCurrentDownloads();
-            var downloadingCount = 0;
-
             try
             {
                 DownloadingTasks.RemoveAll((m) => m.IsCompleted);
-                foreach (var downloading in DownloadingList)
-                {
-                    if (downloading.Downloading.DownloadStatus == DownloadStatus.Downloading)
-                    {
-                        downloadingCount++;
-                    }
-                }
 
                 foreach (var downloading in DownloadingList)
                 {
-                    if (downloadingCount >= maxDownloading)
-                    {
-                        break;
-                    }
-
-                    // 开始下载
-                    if (downloading.Downloading.DownloadStatus is not (DownloadStatus.NotStarted or DownloadStatus.WaitForDownload)) continue;
+                    if (downloading.Downloading.DownloadStatus is not (DownloadStatus.NotStarted or DownloadStatus.WaitForDownload))
+                        continue;
+                    
+                    await _downloadSemaphore.WaitAsync(CancellationToken.Value);
                     //这里需要立刻设置状态，否则如果SingleDownload没有及时执行，会重复创建任务
                     downloading.Downloading.DownloadStatus = DownloadStatus.Downloading;
-                    DownloadingTasks.Add(SingleDownload(downloading));
-                    downloadingCount++;
+                    DownloadingTasks.Add(SingleDownload(downloading).ContinueWith(_ => _downloadSemaphore.Release()));
                 }
             }
             catch (InvalidOperationException e)
@@ -670,6 +683,14 @@ public abstract class DownloadService
                     Pause(downloading);
                 }
 
+
+                //nfo
+                if (SettingsManager.GetInstance()
+                    .GetVideoContent().GenerateMovieMetadata)
+                {
+                    GenerateNfoFile(downloading);
+                }
+
                 string? outputDanmaku = null;
                 // 如果需要下载弹幕
                 if (downloading.DownloadBase.NeedDownloadContent["downloadDanmaku"])
@@ -781,6 +802,7 @@ public abstract class DownloadService
                     Downloaded = downloaded
                 };
 
+                DownloadStorageService.RemoveDownloading(downloading);
                 DownloadStorageService.AddDownloaded(downloadedItem);
                 App.PropertyChangeAsync(() =>
                 {

@@ -167,6 +167,15 @@ public class ViewVideoViewModel : ViewModelBase
         set => SetProperty(ref _downloadCover, value);
     }
 
+
+    public bool _generateMovieMetadata;
+
+    public bool GenerateMovieMetadata
+    {
+        get => _generateMovieMetadata;
+        set => SetProperty(ref _generateMovieMetadata, value);
+    }
+
     private ObservableCollection<DisplayFileNamePart> _selectedFileName;
 
     public ObservableCollection<DisplayFileNamePart> SelectedFileName
@@ -344,7 +353,7 @@ public class ViewVideoViewModel : ViewModelBase
         DownloadDanmaku = videoContent.DownloadDanmaku;
         DownloadSubtitle = videoContent.DownloadSubtitle;
         DownloadCover = videoContent.DownloadCover;
-
+        GenerateMovieMetadata = videoContent.GenerateMovieMetadata;
         if (DownloadAudio && DownloadVideo && DownloadDanmaku && DownloadSubtitle && DownloadCover)
         {
             DownloadAll = true;
@@ -357,12 +366,12 @@ public class ViewVideoViewModel : ViewModelBase
         // 文件命名格式
         var fileNameParts = SettingsManager.GetInstance().GetFileNameParts();
         SelectedFileName.Clear();
-        foreach (var item in fileNameParts)
+        SelectedFileName.AddRange(fileNameParts.Select(x => new DisplayFileNamePart()
         {
-            var display = DisplayFileNamePart(item);
-            SelectedFileName.Add(new DisplayFileNamePart { Id = item, Title = display });
-        }
-
+            Id = x,
+            Title = DisplayFileNamePart(x),
+        }));
+       
         // 文件命名中的时间格式
         SelectedFileNamePartTimeFormat = SettingsManager.GetInstance().GetFileNamePartTimeFormat();
 
@@ -652,12 +661,23 @@ public class ViewVideoViewModel : ViewModelBase
 
         SetVideoContent();
     }
-
+    
+    
     // 封面选择事件
     private DelegateCommand? _downloadCoverCommand;
 
     public DelegateCommand DownloadCoverCommand => _downloadCoverCommand ??= new DelegateCommand(ExecuteDownloadCoverCommand);
 
+
+    private DelegateCommand _generateMovieMetadataCommand;
+
+    public DelegateCommand GenerateMovieMetadataCommand => new DelegateCommand(ExecuteGenerateMovieMetadataCommand);
+
+
+    private void ExecuteGenerateMovieMetadataCommand()
+    {
+        SetVideoContent();
+    }
     /// <summary>
     /// 封面选择事件
     /// </summary>
@@ -862,7 +882,8 @@ public class ViewVideoViewModel : ViewModelBase
             DownloadVideo = DownloadVideo,
             DownloadDanmaku = DownloadDanmaku,
             DownloadSubtitle = DownloadSubtitle,
-            DownloadCover = DownloadCover
+            DownloadCover = DownloadCover,
+            GenerateMovieMetadata = GenerateMovieMetadata
         };
 
         var isSucceed = SettingsManager.GetInstance().SetVideoContent(videoContent);
