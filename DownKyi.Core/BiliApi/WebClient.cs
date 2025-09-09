@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Web;
 using DownKyi.Core.BiliApi.Login;
 using DownKyi.Core.Logging;
 using DownKyi.Core.Settings;
@@ -8,9 +9,9 @@ using DownKyi.Core.Storage;
 
 namespace DownKyi.Core.BiliApi;
 
-internal static class WebClient
+public static class WebClient
 {
-    private static readonly HttpClient _httpClient;
+    private static readonly HttpClient HttpClient;
     private static string? _bvuid3 = string.Empty;
     private static string? _bvuid4 = string.Empty;
 
@@ -31,7 +32,7 @@ internal static class WebClient
                 break;
             case NetworkProxy.System:
                 socketsHandler.UseProxy = true;
-                socketsHandler.Proxy = WebRequest.GetSystemWebProxy();
+                socketsHandler.Proxy = HttpClient.DefaultProxy;
                 break;
             case NetworkProxy.Custom:
             {
@@ -42,16 +43,17 @@ internal static class WebClient
                 }
                 catch (Exception e)
                 {
-                    socketsHandler.UseProxy = true;
+                    socketsHandler.UseProxy = false;
+                    socketsHandler.Proxy = null;
                     Console.WriteLine(e);
                 }
             }
                 break;
         }
 
-        _httpClient = new HttpClient(socketsHandler);
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", SettingsManager.GetInstance().GetUserAgent());
-        _httpClient.DefaultRequestHeaders.Add("accept-language", "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7");
+        HttpClient = new HttpClient(socketsHandler);
+        HttpClient.DefaultRequestHeaders.Add("User-Agent", SettingsManager.GetInstance().GetUserAgent());
+        HttpClient.DefaultRequestHeaders.Add("accept-language", "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7");
     }
 
     internal class SpiOrigin
@@ -76,7 +78,7 @@ internal static class WebClient
         _bvuid4 = spi?.Data?.Bvuid4;
     }
 
-    public static string RequestWeb(string url, string? referer = null, string method = "GET", Dictionary<string, string>? parameters = null, int retry = 3)
+    public static string RequestWeb(string url, string? referer = null, string method = "GET", Dictionary<string, object?>? parameters = null, int retry = 3, bool json = false)
     {
         if (retry <= 0)
         {
@@ -105,12 +107,12 @@ internal static class WebClient
 
                 if (!string.IsNullOrEmpty(_bvuid3))
                 {
-                    cookies.Add(new DownKyiCookie("buvid3", _bvuid3));
+                    cookies.Add(new DownKyiCookie("buvid3", HttpUtility.UrlEncode(_bvuid3)));
                 }
 
                 if (!string.IsNullOrEmpty(_bvuid4))
                 {
-                    cookies.Add(new DownKyiCookie("buvid4", _bvuid4));
+                    cookies.Add(new DownKyiCookie("buvid4", HttpUtility.UrlEncode(_bvuid4)));
                 }
 
                 if (cookies.Count > 0)
@@ -121,7 +123,14 @@ internal static class WebClient
 
             if (method == "POST" && parameters != null)
             {
-                request.Content = new FormUrlEncodedContent(parameters);
+                if (json)
+                {
+                    request.Content = new StringContent(JsonSerializer.Serialize(parameters), System.Text.Encoding.UTF8, "application/json");
+                }
+                else
+                {
+                    request.Content = new FormUrlEncodedContent(parameters.Select(item => new KeyValuePair<string, string>(item.Key, item.Value?.ToString() ?? "")));
+                }
             }
             else if (parameters != null)
             {
@@ -130,7 +139,7 @@ internal static class WebClient
                 request.RequestUri = new Uri(url);
             }
 
-            var response = _httpClient.Send(request);
+            var response = HttpClient.Send(request);
             response.EnsureSuccessStatusCode();
 
             using var reader = new StreamReader(response.Content.ReadAsStream());
@@ -151,21 +160,21 @@ internal static class WebClient
     }
 
     public static void DownloadFile(string url, string destFile, string? referer = null)
-    { 
+    {
         using var fs = File.Create(destFile);
         using var stream = RequestStream(url, referer);
-        stream?.CopyTo(fs);
+        stream.CopyTo(fs);
     }
 
-    public static Stream? RequestStream(string url, string? referer = null,
-        string method = "GET")
+    public static Stream RequestStream(string url, string? referer = null, string method = "GET")
     {
         var request = new HttpRequestMessage(new HttpMethod(method), url);
-        
+
         if (referer != null)
         {
             request.Headers.Referrer = new Uri(referer);
         }
+
         if (!url.Contains("getLogin"))
         {
             request.Headers.Add("origin", "https://m.bilibili.com");
@@ -175,8 +184,8 @@ internal static class WebClient
                 request.Headers.Add("cookie", cookies);
             }
         }
-        
-        var response = _httpClient.Send(request);
+
+        var response = HttpClient.Send(request);
         response.EnsureSuccessStatusCode();
         return response.Content.ReadAsStream();
     }

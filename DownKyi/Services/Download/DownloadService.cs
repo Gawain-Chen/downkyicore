@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Serialization;
+using DownKyi.Core.BiliApi;
 using DownKyi.Core.BiliApi.BiliUtils;
 using DownKyi.Core.BiliApi.VideoStream;
 using DownKyi.Core.BiliApi.VideoStream.Models;
@@ -176,7 +177,7 @@ public abstract class DownloadService
         try
         {
             if (coverUrl == null) return null;
-            StorageUtils.DownloadImage(coverUrl, fileName);
+            WebClient.DownloadFile(coverUrl, fileName);
 
             // 记录本次下载的文件
             downloading.Downloading.DownloadFiles.TryAdd(coverUrl, fileName);
@@ -418,8 +419,7 @@ public abstract class DownloadService
                 };
                 break;
             case PlayStreamType.Bangumi:
-                downloading.PlayUrl ??= VideoStream.GetBangumiPlayUrl(downloading.DownloadBase.Avid,
-                    downloading.DownloadBase.Bvid, downloading.DownloadBase.Cid);
+                downloading.PlayUrl ??= VideoStream.GetBangumiPlayUrl(downloading.DownloadBase.Avid, downloading.DownloadBase.Bvid, downloading.DownloadBase.Cid);
                 break;
             case PlayStreamType.Cheese:
                 downloading.PlayUrl ??= VideoStream.GetCheesePlayUrl(downloading.DownloadBase.Avid,
@@ -430,8 +430,8 @@ public abstract class DownloadService
                 break;
         }
     }
-    
-    private readonly SemaphoreSlim _downloadSemaphore = new (SettingsManager.GetInstance()
+
+    private readonly SemaphoreSlim _downloadSemaphore = new(SettingsManager.GetInstance()
         .GetMaxCurrentDownloads());
 
     /// <summary>
@@ -442,7 +442,7 @@ public abstract class DownloadService
         // 上次循环时正在下载的数量
         var lastDownloadingCount = 0;
 
-        while (CancellationToken.HasValue && 
+        while (CancellationToken.HasValue &&
                !CancellationToken.Value.IsCancellationRequested)
         {
             try
@@ -453,7 +453,7 @@ public abstract class DownloadService
                 {
                     if (downloading.Downloading.DownloadStatus is not (DownloadStatus.NotStarted or DownloadStatus.WaitForDownload))
                         continue;
-                    
+
                     await _downloadSemaphore.WaitAsync(CancellationToken.Value);
                     //这里需要立刻设置状态，否则如果SingleDownload没有及时执行，会重复创建任务
                     downloading.Downloading.DownloadStatus = DownloadStatus.Downloading;

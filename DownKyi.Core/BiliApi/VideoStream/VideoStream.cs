@@ -116,7 +116,7 @@ public static class VideoStream
     /// <param name="cid"></param>
     /// <param name="quality"></param>
     /// <returns></returns>
-    public static PlayUrl GetVideoPlayUrl(long avid, string bvid, long cid, int quality = 125)
+    public static PlayUrl? GetVideoPlayUrl(long avid, string bvid, long cid, int quality = 125)
     {
         var parameters = new Dictionary<string, object?>
         {
@@ -153,7 +153,7 @@ public static class VideoStream
     /// <param name="bvid"></param>
     /// <param name="p"></param>
     /// <returns></returns>
-    public static PlayUrl GetVideoPlayUrlWebPage(long avid, string bvid, long cid, int p)
+    public static PlayUrl? GetVideoPlayUrlWebPage(long avid, string bvid, long cid, int p)
     {
         var url = "https://www.bilibili.com/video";
         if (bvid == string.Empty)
@@ -174,15 +174,15 @@ public static class VideoStream
         return playUrl;
     }
 
-    /// <summary>
-    /// 获取番剧的视频流
-    /// </summary>
-    /// <param name="avid"></param>
-    /// <param name="bvid"></param>
-    /// <param name="cid"></param>
-    /// <param name="quality"></param>
-    /// <returns></returns>
-    public static PlayUrl GetBangumiPlayUrl(long avid, string bvid, long cid, int quality = 125)
+    // /// <summary>
+    // /// 获取番剧的视频流
+    // /// </summary>
+    // /// <param name="avid"></param>
+    // /// <param name="bvid"></param>
+    // /// <param name="cid"></param>
+    // /// <param name="quality"></param>
+    // /// <returns></returns>
+    public static PlayUrl? GetBangumiPlayUrl(long avid, string bvid, long cid, int quality = 125)
     {
         var baseUrl = $"https://api.bilibili.com/pgc/player/web/playurl?cid={cid}&qn={quality}&fourk=1&fnver=0&fnval=4048";
         string url;
@@ -241,7 +241,7 @@ public static class VideoStream
     /// </summary>
     /// <param name="url"></param>
     /// <returns></returns>
-    private static PlayUrl GetPlayUrl(string url)
+    private static PlayUrl? GetPlayUrl(string url)
     {
         const string referer = "https://www.bilibili.com";
         var response = WebClient.RequestWeb(url, referer);

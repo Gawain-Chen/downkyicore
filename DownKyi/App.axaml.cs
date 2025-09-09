@@ -1,12 +1,15 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+#if !DEBUG
 using System.Threading;
+#endif
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+using DownKyi.Core.Logging;
 using DownKyi.Core.Settings;
 using DownKyi.Core.Storage;
 using DownKyi.Models;
@@ -45,8 +48,9 @@ public partial class App : PrismApplication
     public new static App Current => (App)Application.Current!;
     public new MainWindow MainWindow => Container.Resolve<MainWindow>();
     public IClassicDesktopStyleApplicationLifetime? AppLife;
-
+#if !DEBUG
     private static Mutex _mutex;
+#endif
 
     // 下载服务
     private IDownloadService? _downloadService;
@@ -54,14 +58,25 @@ public partial class App : PrismApplication
     public override void Initialize()
     {
 #if !DEBUG
-              _mutex = new Mutex(true, "Global\\DownKyi", out var createdNew);
-                if (!createdNew)
-                {
-                    Environment.Exit(0);
-                }
+        _mutex = new Mutex(true, "Global\\DownKyi", out var createdNew);
+        if (!createdNew)
+        {
+            Environment.Exit(0);
+        }
 #endif
 
         AvaloniaXamlLoader.Load(this);
+        Dispatcher.UIThread.UnhandledException += (_, e) =>
+        {
+            LogManager.Error("[Program crash]",e.Exception);
+        };
+        
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            var exception = e.ExceptionObject as Exception;
+            LogManager.Error("[Program crash]",exception!);
+        };
+        
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.Exit += OnExit!;
