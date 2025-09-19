@@ -333,7 +333,7 @@ public class AddToDownloadService
                              item.Resolution.Id == page.VideoQuality.Quality &&
                              item.VideoCodecName == page.VideoQuality.SelectedVideoCodec &&
                              (
-                                 (page.PlayUrl.Dash != null && item.AudioCodec.Name == page.AudioQualityFormat) ||
+                                 (page.PlayUrl.Dash != null && item.AudioCodec?.Name == page.AudioQualityFormat) ||
                                  (page.PlayUrl.Dash == null && page.PlayUrl.Durl != null)
                              );
 
